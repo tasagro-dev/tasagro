@@ -1,11 +1,11 @@
 
-import { ArrowRight, Calculator, Store } from 'lucide-react';
+import { ArrowRight, Calculator, Store, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const HeroSection = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-agro-50 via-white to-agro-100">
+    <div className="min-h-screen bg-gradient-to-br from-agro-50 via-white to-agro-100 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
         {/* Hero Content */}
         <div className="text-center mb-16 animate-fade-in">
@@ -13,7 +13,7 @@ const HeroSection = () => {
             Tu campo vale más de lo que{' '}
             <span className="text-agro-gradient">imaginás</span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto" style={{ color: '#444444' }}>
             TasAgro te ayuda a conocer el valor real de tu propiedad rural y a conectar con compradores serios del sector agropecuario.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -62,7 +62,7 @@ const HeroSection = () => {
                   Comparación con mercado
                 </li>
               </ul>
-              <Button className="w-full bg-agro-gradient hover:bg-agro-600 text-white group-hover:shadow-lg transition-all duration-300">
+              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                 Tasar mi propiedad
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
@@ -95,7 +95,7 @@ const HeroSection = () => {
                   Red de compradores verificados
                 </li>
               </ul>
-              <Button className="w-full bg-agro-gradient hover:bg-agro-600 text-white group-hover:shadow-lg transition-all duration-300">
+              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                 Publicar mi campo
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
@@ -121,6 +121,14 @@ const HeroSection = () => {
             <div className="text-3xl md:text-4xl font-bold text-agro-600 mb-2">24hs</div>
             <div className="text-gray-600">Tiempo promedio venta</div>
           </div>
+        </div>
+      </div>
+
+      {/* Scroll indicator arrow - always visible */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <div className="flex flex-col items-center text-agro-600">
+          <span className="text-sm mb-2 text-gray-500">Más información</span>
+          <ChevronDown className="w-6 h-6 animate-pulse" />
         </div>
       </div>
     </div>
