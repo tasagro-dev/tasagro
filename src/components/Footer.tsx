@@ -1,5 +1,5 @@
 
-import { Sprout, Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -8,9 +8,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="flex items-center justify-center w-10 h-10 bg-agro-gradient rounded-lg">
-                <Sprout className="w-6 h-6 text-white" />
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex items-center justify-center w-12 h-12">
+                <img 
+                  src="/lovable-uploads/142fdbf6-524d-4445-85ef-679e2cb9aecf.png" 
+                  alt="TasAgro Logo" 
+                  className="w-12 h-12 object-contain"
+                />
               </div>
               <span className="text-2xl font-bold text-agro-gradient">TasAgro</span>
             </div>

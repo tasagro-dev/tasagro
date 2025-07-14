@@ -15,14 +15,15 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center space-x-3">
             <div className="flex items-center justify-center w-12 h-12">
               <img 
-                src="/lovable-uploads/16d2ddd6-1606-46f8-85b2-ccc3f963b042.png" 
+                src="/lovable-uploads/142fdbf6-524d-4445-85ef-679e2cb9aecf.png" 
                 alt="TasAgro Logo" 
-                className="w-10 h-10 object-contain"
+                className="w-12 h-12 object-contain"
               />
             </div>
+            <span className="text-2xl font-bold text-agro-gradient">TasAgro</span>
           </div>
 
           {/* Desktop Navigation */}
