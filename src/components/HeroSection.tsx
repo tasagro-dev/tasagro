@@ -124,13 +124,7 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Scroll indicator arrow - always visible */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <div className="flex flex-col items-center text-agro-600">
-          <span className="text-sm mb-2 text-gray-500">Más información</span>
-          <ChevronDown className="w-6 h-6 animate-pulse" />
-        </div>
-      </div>
+
     </div>
   );
 };
