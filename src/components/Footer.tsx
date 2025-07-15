@@ -62,10 +62,15 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-          <p className="text-gray-400">
-            © 2024 TasAgro. Todos los derechos reservados. Hecho con ❤️ para el campo argentino.
-          </p>
-        </div>
+  <p className="text-gray-400">
+    © {new Date().getFullYear()} TasAgro. Todos los derechos reservados. Hecho con ❤️ para el campo argentino.
+  </p>
+  <br />
+  <p className="text-gray-500 text-sm mt-2">
+  Desarrollado por Valentina Sotelo — martillera pública, tasadora rural y programadora full stack.
+</p>
+
+</div>
       </div>
     </footer>
   );
