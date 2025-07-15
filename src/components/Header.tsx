@@ -1,13 +1,25 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleAuthClick = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
   };
 
   return (
@@ -41,11 +53,11 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" className="text-gray-700">
-              Iniciar Sesión
-            </Button>
-            <Button className="bg-agro-gradient hover:bg-agro-600 text-white">
-              Registrarse
+            <Button 
+              className="bg-agro-gradient hover:bg-agro-600 text-white"
+              onClick={handleAuthClick}
+            >
+              {user ? 'Dashboard' : 'Iniciar Sesión'}
             </Button>
           </div>
 
@@ -84,12 +96,12 @@ const Header = () => {
               >
                 Contacto
               </a>
-              <div className="pt-4 border-t border-gray-200 space-y-2">
-                <Button variant="ghost" className="w-full justify-start text-gray-700">
-                  Iniciar Sesión
-                </Button>
-                <Button className="w-full bg-agro-gradient hover:bg-agro-600 text-white">
-                  Registrarse
+              <div className="pt-4 border-t border-gray-200">
+                <Button 
+                  className="w-full bg-agro-gradient hover:bg-agro-600 text-white"
+                  onClick={handleAuthClick}
+                >
+                  {user ? 'Dashboard' : 'Iniciar Sesión'}
                 </Button>
               </div>
             </div>
