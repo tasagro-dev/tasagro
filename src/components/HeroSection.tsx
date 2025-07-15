@@ -36,8 +36,8 @@ const HeroSection = () => {
         {/* Service Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Tasa tu Propiedad */}
-          <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-lg animate-scale-in">
-            <CardContent className="p-8">
+          <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-lg animate-scale-in h-full">
+            <CardContent className="p-8 flex flex-col h-full">
               <div className="flex items-center justify-center w-16 h-16 bg-agro-gradient rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Calculator className="w-8 h-8 text-white" />
               </div>
@@ -61,7 +61,7 @@ const HeroSection = () => {
                   Comparación con mercado
                 </li>
               </ul>
-              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105 mt-auto">
                 Tasar mi propiedad
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
@@ -69,8 +69,8 @@ const HeroSection = () => {
           </Card>
 
           {/* Publicá y Vendé */}
-          <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-lg animate-scale-in">
-            <CardContent className="p-8">
+          <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-lg animate-scale-in h-full">
+            <CardContent className="p-8 flex flex-col h-full">
               <div className="flex items-center justify-center w-16 h-16 bg-agro-gradient rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Sprout className="w-8 h-8 text-white" />
               </div>
@@ -94,7 +94,7 @@ const HeroSection = () => {
                   Red de compradores verificados
                 </li>
               </ul>
-              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+              <Button className="w-full bg-agro-gradient hover:bg-gradient-to-br hover:from-agro-600 hover:via-agro-700 hover:to-agro-800 hover:shadow-xl text-white group-hover:shadow-lg transition-all duration-300 transform hover:scale-105 mt-auto">
                 Publicar mi campo
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
