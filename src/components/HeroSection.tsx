@@ -1,5 +1,4 @@
-
-import { ArrowRight, Calculator, ChevronDown } from 'lucide-react';
+import { ArrowRight, Calculator, ChevronDown, Sprout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -73,11 +72,7 @@ const HeroSection = () => {
           <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-lg animate-scale-in">
             <CardContent className="p-8">
               <div className="flex items-center justify-center w-16 h-16 bg-agro-gradient rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
-                <img 
-                  src="/lovable-uploads/142fdbf6-524d-4445-85ef-679e2cb9aecf.png" 
-                  alt="TasAgro Logo" 
-                  className="w-8 h-8 object-contain"
-                />
+                <Sprout className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Publicá y Vendé tu Campo
