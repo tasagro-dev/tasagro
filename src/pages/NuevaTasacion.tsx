@@ -10,10 +10,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, CheckCircle } from 'lucide-react';
 
 type FormData = {
   nombre_propiedad?: string;
@@ -57,6 +58,7 @@ const NuevaTasacion = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -148,12 +150,8 @@ const NuevaTasacion = () => {
         throw error;
       }
 
-      toast({
-        title: "¡Tasación creada!",
-        description: `Valor estimado: $${valorEstimado.toLocaleString('es-AR')}`,
-      });
-
-      navigate('/dashboard');
+      // Show success modal instead of toast
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Error creating tasacion:', error);
       toast({
@@ -177,6 +175,11 @@ const NuevaTasacion = () => {
       return;
     }
     setSelectedFiles(files);
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    navigate('/dashboard');
   };
 
   if (loading) {
@@ -583,6 +586,28 @@ const NuevaTasacion = () => {
           </form>
         </Form>
       </main>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-xl font-semibold">
+              ¡Tasación realizada con éxito!
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600 mt-2">
+              Ya podés descargar el informe desde la sección Mis Tasaciones.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-6">
+            <Button onClick={handleSuccessModalClose} className="w-full">
+              Ir a Mis Tasaciones
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
