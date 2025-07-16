@@ -38,48 +38,63 @@ export type Database = {
         }
         Relationships: []
       }
-      valuations: {
+      tasaciones: {
         Row: {
+          accesibilidad: string
+          coordenadas: string | null
           created_at: string
-          estimated_value: number | null
+          hectareas: number
           id: string
-          infrastructure: string | null
-          location: string
-          notes: string | null
-          property_type: string
-          size_hectares: number
-          soil_quality: string | null
+          imagenes: string[] | null
+          localidad: string
+          mejoras: string[] | null
+          nombre_propiedad: string | null
+          partido: string
+          provincia: string
+          servicios: string[] | null
+          tipo_campo: string
+          tipo_suelo: string | null
           updated_at: string
           user_id: string
-          water_access: boolean | null
+          valor_estimado: number | null
         }
         Insert: {
+          accesibilidad: string
+          coordenadas?: string | null
           created_at?: string
-          estimated_value?: number | null
+          hectareas: number
           id?: string
-          infrastructure?: string | null
-          location: string
-          notes?: string | null
-          property_type: string
-          size_hectares: number
-          soil_quality?: string | null
+          imagenes?: string[] | null
+          localidad: string
+          mejoras?: string[] | null
+          nombre_propiedad?: string | null
+          partido: string
+          provincia: string
+          servicios?: string[] | null
+          tipo_campo: string
+          tipo_suelo?: string | null
           updated_at?: string
           user_id: string
-          water_access?: boolean | null
+          valor_estimado?: number | null
         }
         Update: {
+          accesibilidad?: string
+          coordenadas?: string | null
           created_at?: string
-          estimated_value?: number | null
+          hectareas?: number
           id?: string
-          infrastructure?: string | null
-          location?: string
-          notes?: string | null
-          property_type?: string
-          size_hectares?: number
-          soil_quality?: string | null
+          imagenes?: string[] | null
+          localidad?: string
+          mejoras?: string[] | null
+          nombre_propiedad?: string | null
+          partido?: string
+          provincia?: string
+          servicios?: string[] | null
+          tipo_campo?: string
+          tipo_suelo?: string | null
           updated_at?: string
           user_id?: string
-          water_access?: boolean | null
+          valor_estimado?: number | null
         }
         Relationships: []
       }

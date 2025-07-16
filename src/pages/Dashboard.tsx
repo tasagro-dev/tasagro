@@ -108,7 +108,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => navigate('/')}>
+              <Button className="w-full" onClick={() => navigate('/dashboard/nueva-tasacion')}>
                 Comenzar tasación
               </Button>
             </CardContent>
