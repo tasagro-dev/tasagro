@@ -126,10 +126,11 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                Aún no tienes tasaciones guardadas.
-              </p>
-              <Button variant="outline" className="w-full" disabled>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => navigate('/dashboard/mis-tasaciones')}
+              >
                 Ver tasaciones
               </Button>
             </CardContent>
