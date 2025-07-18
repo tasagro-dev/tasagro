@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Download, MapPin, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import jsPDF from 'jspdf';
 
 type Tasacion = Tables<'tasaciones'>;
 
@@ -71,14 +72,138 @@ const MisTasaciones = () => {
   };
 
   const generatePDF = (tasacion: Tasacion) => {
-    // Simulación de descarga de PDF - aquí implementarías la generación real del PDF
-    toast({
-      title: "Descargando PDF",
-      description: `Generando informe para ${tasacion.nombre_propiedad || 'Propiedad sin nombre'}...`,
-    });
-    
-    // Aquí puedes implementar la lógica real de generación de PDF
-    console.log('Generating PDF for tasacion:', tasacion);
+    try {
+      const doc = new jsPDF();
+      
+      // Configuración de fuentes y colores
+      doc.setFont('helvetica');
+      
+      // Header con logo y título
+      doc.setFontSize(24);
+      doc.setTextColor(40, 40, 40);
+      doc.text('TasAgro', 20, 30);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(80, 80, 80);
+      doc.text('Informe de Tasación Rural', 20, 45);
+      
+      // Línea separadora
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, 55, 190, 55);
+      
+      // Información de la propiedad
+      let yPosition = 75;
+      
+      doc.setFontSize(14);
+      doc.setTextColor(40, 40, 40);
+      doc.text('DATOS DE LA PROPIEDAD', 20, yPosition);
+      yPosition += 15;
+      
+      doc.setFontSize(11);
+      doc.setTextColor(60, 60, 60);
+      
+      // Nombre de la propiedad
+      doc.text(`Nombre: ${tasacion.nombre_propiedad || 'Sin especificar'}`, 20, yPosition);
+      yPosition += 10;
+      
+      // Ubicación
+      doc.text(`Ubicación: ${tasacion.localidad}, ${tasacion.partido}, ${tasacion.provincia}`, 20, yPosition);
+      yPosition += 10;
+      
+      // Superficie
+      doc.text(`Superficie: ${tasacion.hectareas} hectáreas`, 20, yPosition);
+      yPosition += 10;
+      
+      // Tipo de campo
+      doc.text(`Tipo de campo: ${tasacion.tipo_campo}`, 20, yPosition);
+      yPosition += 10;
+      
+      // Tipo de suelo
+      if (tasacion.tipo_suelo) {
+        doc.text(`Tipo de suelo: ${tasacion.tipo_suelo}`, 20, yPosition);
+        yPosition += 10;
+      }
+      
+      // Accesibilidad
+      doc.text(`Accesibilidad: ${tasacion.accesibilidad}`, 20, yPosition);
+      yPosition += 15;
+      
+      // Mejoras
+      if (tasacion.mejoras && tasacion.mejoras.length > 0) {
+        doc.setFontSize(12);
+        doc.setTextColor(40, 40, 40);
+        doc.text('MEJORAS:', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(60, 60, 60);
+        tasacion.mejoras.forEach((mejora) => {
+          doc.text(`• ${mejora}`, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 5;
+      }
+      
+      // Servicios
+      if (tasacion.servicios && tasacion.servicios.length > 0) {
+        doc.setFontSize(12);
+        doc.setTextColor(40, 40, 40);
+        doc.text('SERVICIOS:', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(60, 60, 60);
+        tasacion.servicios.forEach((servicio) => {
+          doc.text(`• ${servicio}`, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 15;
+      }
+      
+      // Valor estimado (destacado)
+      doc.setFillColor(240, 248, 255);
+      doc.rect(20, yPosition - 5, 170, 25, 'F');
+      
+      doc.setFontSize(14);
+      doc.setTextColor(40, 40, 40);
+      doc.text('VALOR ESTIMADO:', 25, yPosition + 5);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(0, 120, 0);
+      doc.text(formatCurrency(tasacion.valor_estimado), 25, yPosition + 15);
+      yPosition += 35;
+      
+      // Fecha de tasación
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Fecha de tasación: ${formatDate(tasacion.created_at)}`, 20, yPosition);
+      
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Generado por TasAgro - Sistema de Tasación Rural', 20, pageHeight - 20);
+      doc.text(`Informe generado el ${new Date().toLocaleDateString('es-AR')}`, 20, pageHeight - 10);
+      
+      // Generar nombre del archivo
+      const fileName = `Tasacion_${tasacion.nombre_propiedad?.replace(/\s+/g, '_') || 'Propiedad'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Descargar el PDF
+      doc.save(fileName);
+      
+      toast({
+        title: "PDF Generado",
+        description: "El informe se ha descargado correctamente.",
+      });
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar el PDF. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (value: number | null) => {
