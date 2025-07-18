@@ -67,17 +67,19 @@ const Dashboard = () => {
               <span className="text-xl font-bold text-agro-gradient">TasAgro Dashboard</span>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <span className="text-xs sm:text-sm text-gray-600 hidden sm:block">
                 {user.email}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSignOut}
+                className="flex items-center gap-1 sm:gap-2"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Cerrar sesión
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+                <span className="sm:hidden">Salir</span>
               </Button>
             </div>
           </div>
