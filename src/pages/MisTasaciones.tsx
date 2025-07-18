@@ -79,18 +79,17 @@ const MisTasaciones = () => {
       doc.setFont('helvetica');
       
       // Header con logo y título
-      // Agregar logo (simulado con un rectángulo verde por ahora)
-      doc.setFillColor(5, 150, 105); // Color verde del gradiente agro
-      doc.circle(25, 25, 8, 'F');
+      // Agregar logo TasAgro
+      doc.addImage('/lovable-uploads/758022d9-f59a-4f27-94f1-6f2bad184faf.png', 'PNG', 20, 15, 20, 20);
       
       // Título TasAgro en verde
       doc.setFontSize(24);
       doc.setTextColor(5, 150, 105); // Verde del gradiente agro (#059669)
-      doc.text('TasAgro', 40, 30);
+      doc.text('TasAgro', 45, 30);
       
       doc.setFontSize(16);
       doc.setTextColor(80, 80, 80);
-      doc.text('Informe de Tasación Rural', 40, 45);
+      doc.text('Informe de Tasación Rural', 45, 45);
       
       // Línea separadora
       doc.setDrawColor(200, 200, 200);
