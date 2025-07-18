@@ -179,7 +179,7 @@ const NuevaTasacion = () => {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    navigate('/dashboard');
+    navigate('/dashboard/tasaciones');
   };
 
   if (loading) {
