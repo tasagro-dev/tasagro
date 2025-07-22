@@ -41,7 +41,7 @@ const HeroSection = () => {
           <Button 
             size="lg"
             className="bg-agro-gradient hover:bg-agro-600 text-white px-12 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/tasar-campo')}
           >
             QUIERO TASAR/VENDER MI CAMPO
           </Button>
