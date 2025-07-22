@@ -1,4 +1,4 @@
-import { ArrowRight, Calculator, Sprout } from 'lucide-react';
+import { ArrowRight, Calculator, Sprout, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,17 @@ const TasarCampo = () => {
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-agro-50 via-white to-agro-100 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          {/* Botón de regreso */}
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 text-agro-600 hover:text-agro-700 hover:bg-agro-50"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver al inicio
+            </Button>
+          </div>
           {/* Hero Content */}
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">

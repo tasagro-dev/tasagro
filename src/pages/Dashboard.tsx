@@ -112,7 +112,7 @@ const Dashboard = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/tasar-campo')}
                 className="flex items-center gap-1 sm:gap-2"
               >
                 <Home className="w-4 h-4" />
