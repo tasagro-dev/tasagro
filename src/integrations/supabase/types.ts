@@ -20,6 +20,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          tipo_usuario: string | null
           updated_at: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          tipo_usuario?: string | null
           updated_at?: string
         }
         Update: {
@@ -34,9 +36,66 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          tipo_usuario?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      propiedades: {
+        Row: {
+          cantidad_hectareas: number
+          created_at: string
+          descripcion: string | null
+          foto_destacada: string | null
+          id: string
+          precio: number | null
+          publicada: boolean
+          servicios: string[] | null
+          tipo_campo: string
+          titulo: string
+          ubicacion_id: string | null
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          cantidad_hectareas: number
+          created_at?: string
+          descripcion?: string | null
+          foto_destacada?: string | null
+          id?: string
+          precio?: number | null
+          publicada?: boolean
+          servicios?: string[] | null
+          tipo_campo: string
+          titulo: string
+          ubicacion_id?: string | null
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          cantidad_hectareas?: number
+          created_at?: string
+          descripcion?: string | null
+          foto_destacada?: string | null
+          id?: string
+          precio?: number | null
+          publicada?: boolean
+          servicios?: string[] | null
+          tipo_campo?: string
+          titulo?: string
+          ubicacion_id?: string | null
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propiedades_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasaciones: {
         Row: {
@@ -95,6 +154,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           valor_estimado?: number | null
+        }
+        Relationships: []
+      }
+      ubicaciones: {
+        Row: {
+          created_at: string
+          id: string
+          localidad: string
+          provincia: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          localidad: string
+          provincia: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          localidad?: string
+          provincia?: string
+          updated_at?: string
         }
         Relationships: []
       }
