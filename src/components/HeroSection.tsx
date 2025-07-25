@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button';
 import campoVerdeImg from '@/assets/campo-verde.jpg';
 import tabletNegociosImg from '@/assets/tablet-negocios.jpg';
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  onComprarClick: () => void;
+}
+
+const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
   const navigate = useNavigate();
 
   return (
@@ -21,7 +25,7 @@ const HeroSection = () => {
           <Button 
             size="lg"
             className="bg-agro-gradient hover:bg-agro-600 text-white px-12 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
-            onClick={() => navigate('#')} // Cambia por la ruta de comprar cuando esté disponible
+            onClick={onComprarClick}
           >
             QUIERO COMPRAR
           </Button>
