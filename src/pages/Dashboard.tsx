@@ -1,22 +1,60 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, FileText, Plus } from 'lucide-react';
+import { LogOut, FileText, Plus, Home } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [tasacionStats, setTasacionStats] = useState({ total: 0, thisMonth: 0 });
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchTasacionStats();
+    }
+  }, [user]);
+
+  const fetchTasacionStats = async () => {
+    if (!user) return;
+    
+    try {
+      // Obtener todas las tasaciones del usuario
+      const { data: tasaciones, error } = await supabase
+        .from('tasaciones')
+        .select('created_at')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching tasaciones:', error);
+        return;
+      }
+
+      const total = tasaciones?.length || 0;
+      
+      // Calcular tasaciones de este mes
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonth = tasaciones?.filter(tasacion => 
+        new Date(tasacion.created_at) >= startOfMonth
+      ).length || 0;
+
+      setTasacionStats({ total, thisMonth });
+    } catch (error) {
+      console.error('Error fetching tasacion stats:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -71,6 +109,16 @@ const Dashboard = () => {
               <span className="text-xs sm:text-sm text-gray-600 hidden sm:block">
                 {user.email}
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/tasar-campo')}
+                className="flex items-center gap-1 sm:gap-2"
+              >
+                <Home className="w-4 h-4" />
+                <span className="hidden sm:inline">Volver al inicio</span>
+                <span className="sm:hidden">Inicio</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -150,11 +198,11 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total tasaciones:</span>
-                  <span className="font-semibold">0</span>
+                  <span className="font-semibold">{tasacionStats.total}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Este mes:</span>
-                  <span className="font-semibold">0</span>
+                  <span className="font-semibold">{tasacionStats.thisMonth}</span>
                 </div>
               </div>
             </CardContent>

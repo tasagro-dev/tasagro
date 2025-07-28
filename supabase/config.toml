@@ -1,1 +1,10 @@
 project_id = "minypmsdvdhktkekbeaj"
+
+[functions.propiedades]
+verify_jwt = false
+
+[functions.ubicaciones]
+verify_jwt = false
+
+[functions.upload-image]
+verify_jwt = false
