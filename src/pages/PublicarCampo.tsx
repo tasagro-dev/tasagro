@@ -125,17 +125,35 @@ export default function PublicarCampo() {
       const formData = new FormData();
       formData.append('file', image);
 
-      const { data, error } = await supabase.functions.invoke('upload-image', {
-        body: formData
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('upload-image', {
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
+        });
 
-      if (error) {
-        console.error('Error uploading image:', error);
-        continue;
-      }
+        if (error) {
+          console.error('Error uploading image:', error);
+          toast({
+            title: "Error subiendo imagen",
+            description: `No se pudo subir la imagen: ${error.message}`,
+            variant: "destructive"
+          });
+          continue;
+        }
 
-      if (data?.url) {
-        uploadedUrls.push(data.url);
+        const imageUrl = data?.url || data?.data?.publicUrl;
+        if (imageUrl) {
+          uploadedUrls.push(imageUrl);
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        toast({
+          title: "Error subiendo imagen",
+          description: "Error de conexión al subir la imagen",
+          variant: "destructive"
+        });
       }
     }
 
@@ -169,10 +187,33 @@ export default function PublicarCampo() {
         body: {
           action: 'create',
           propiedad: propertyData
+        },
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         }
       });
 
       if (error) throw error;
+
+      // If we have additional images and the property was created successfully
+      if (data?.data?.id && imageUrls.length > 0) {
+        try {
+          // Save all images to the propiedad_imagenes table
+          const imageRecords = imageUrls.map((url, index) => ({
+            propiedad_id: data.data.id,
+            imagen_url: url,
+            es_destacada: index === 0,
+            orden: index
+          }));
+
+          await supabase
+            .from('propiedad_imagenes')
+            .insert(imageRecords);
+        } catch (imageError) {
+          console.error('Error saving additional images:', imageError);
+          // Don't fail the entire process if image saving fails
+        }
+      }
 
       toast({
         title: "¡Campo publicado!",

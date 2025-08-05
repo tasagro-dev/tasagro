@@ -41,6 +41,44 @@ export type Database = {
         }
         Relationships: []
       }
+      propiedad_imagenes: {
+        Row: {
+          created_at: string
+          es_destacada: boolean
+          id: string
+          imagen_url: string
+          orden: number | null
+          propiedad_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          es_destacada?: boolean
+          id?: string
+          imagen_url: string
+          orden?: number | null
+          propiedad_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          es_destacada?: boolean
+          id?: string
+          imagen_url?: string
+          orden?: number | null
+          propiedad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propiedad_imagenes_propiedad_id_fkey"
+            columns: ["propiedad_id"]
+            isOneToOne: false
+            referencedRelation: "propiedades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       propiedades: {
         Row: {
           cantidad_hectareas: number

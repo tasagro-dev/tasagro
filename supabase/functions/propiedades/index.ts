@@ -213,11 +213,20 @@ Deno.serve(async (req) => {
         );
       }
 
-      const propiedadData = {
-        ...body,
-        usuario_id: user.id,
-        publicada: false // Por defecto no publicada hasta aprobación
-      };
+      // Handle both direct property data and wrapped format
+      let propiedadData;
+      if (body.action === 'create' && body.propiedad) {
+        propiedadData = {
+          ...body.propiedad,
+          usuario_id: user.id
+        };
+      } else {
+        propiedadData = {
+          ...body,
+          usuario_id: user.id,
+          publicada: body.publicada !== undefined ? body.publicada : false
+        };
+      }
 
       const { data, error } = await supabaseClient
         .from('propiedades')

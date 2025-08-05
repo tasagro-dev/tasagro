@@ -125,7 +125,8 @@ Deno.serve(async (req) => {
             fullPath: data.fullPath,
             publicUrl: publicUrl.publicUrl,
             fileName: fileName
-          }
+          },
+          url: publicUrl.publicUrl  // Add this for backward compatibility
         }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
