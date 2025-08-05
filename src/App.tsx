@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import TasarCampo from "./pages/TasarCampo";
 import NuevaTasacion from "./pages/NuevaTasacion";
 import MisTasaciones from "./pages/MisTasaciones";
+import PublicarCampo from "./pages/PublicarCampo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/nueva-tasacion" element={<NuevaTasacion />} />
           <Route path="/dashboard/mis-tasaciones" element={<MisTasaciones />} />
+          <Route path="/dashboard/publicar-campo" element={<PublicarCampo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
