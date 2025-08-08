@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
   try {
     const supabaseClient = createClient<Database>(
       Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    const anonClient = createClient<Database>(
+      Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
@@ -87,12 +92,6 @@ Deno.serve(async (req) => {
     // Obtener el token de autorización
     const authHeader = req.headers.get('Authorization');
     const accessToken = authHeader?.replace('Bearer ', '');
-    if (accessToken) {
-      // Ensure requests run under the user's context
-      // @ts-ignore - setAuth is available in server environments
-      (supabaseClient.auth as any).setAuth(accessToken);
-    }
-
     console.log(`[${method}] ${url.pathname}`);
 
     // GET /propiedades - Obtener todas las propiedades con filtros opcionales
@@ -205,7 +204,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
+      const { data: { user } } = await anonClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -254,7 +253,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
+      const { data: { user } } = await anonClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -296,7 +295,7 @@ Deno.serve(async (req) => {
       const id = pathSegments[1];
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
+      const { data: { user } } = await anonClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -329,7 +328,7 @@ Deno.serve(async (req) => {
       const userId = pathSegments[2];
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
+      const { data: { user } } = await anonClient.auth.getUser(accessToken || '');
       if (!user || user.id !== userId) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 

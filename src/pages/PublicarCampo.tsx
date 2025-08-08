@@ -75,12 +75,14 @@ export default function PublicarCampo() {
   };
 
   const fetchUbicaciones = async () => {
-    const { data, error } = await supabase.functions.invoke('ubicaciones', {
-      body: { action: 'list' }
-    });
+    const { data, error } = await supabase
+      .from('ubicaciones')
+      .select('id, provincia, localidad')
+      .order('provincia', { ascending: true })
+      .order('localidad', { ascending: true });
 
     if (!error && data) {
-      setUbicaciones(data);
+      setUbicaciones(data as Ubicacion[]);
     }
   };
 
@@ -185,17 +187,23 @@ export default function PublicarCampo() {
         publicada: true
       };
 
-      const { data, error } = await supabase.functions.invoke('propiedades', {
-        body: {
-          action: 'create',
-          propiedad: propertyData
-        },
+      const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/propiedades';
+      const res = await fetch(endpoint, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        }
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
+          propiedad: propertyData,
+        }),
       });
 
-      if (error) throw error;
+      const respJson = await res.json();
+      if (!res.ok) throw new Error(respJson?.error || 'Error publicando');
+
+      const data = respJson;
 
       // If we have additional images and the property was created successfully
       if (data?.data?.id && imageUrls.length > 0) {
