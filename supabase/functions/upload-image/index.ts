@@ -26,18 +26,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verificar autenticación con el token del usuario
-    const userSupabaseClient = createClient(
+    // Verificar autenticación con el token del usuario sin crear sesión
+    const accessToken = authHeader.replace('Bearer ', '');
+    const anonClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
+    );
 
-    await userSupabaseClient.auth.setSession({
-      access_token: authHeader.replace('Bearer ', ''),
-      refresh_token: ''
-    } as any);
-
-    const { data: { user } } = await userSupabaseClient.auth.getUser();
+    const { data: { user } } = await anonClient.auth.getUser(accessToken);
     if (!user) {
       return new Response(
         JSON.stringify({ error: 'Usuario no autenticado' }), 

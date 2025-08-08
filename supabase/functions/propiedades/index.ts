@@ -86,11 +86,11 @@ Deno.serve(async (req) => {
     
     // Obtener el token de autorización
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      supabaseClient.auth.setSession({
-        access_token: authHeader.replace('Bearer ', ''),
-        refresh_token: ''
-      } as any);
+    const accessToken = authHeader?.replace('Bearer ', '');
+    if (accessToken) {
+      // Ensure requests run under the user's context
+      // @ts-ignore - setAuth is available in server environments
+      (supabaseClient.auth as any).setAuth(accessToken);
     }
 
     console.log(`[${method}] ${url.pathname}`);
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
       const id = pathSegments[1];
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 
@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
       const userId = pathSegments[2];
       
       // Verificar autenticación
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser(accessToken || '');
       if (!user || user.id !== userId) {
         return new Response(
           JSON.stringify({ error: 'No autorizado' }), 

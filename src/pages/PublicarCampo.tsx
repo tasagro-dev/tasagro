@@ -119,40 +119,42 @@ export default function PublicarCampo() {
   const uploadImages = async () => {
     if (!user || images.length === 0) return [];
 
-    const uploadedUrls = [];
-    
+    const uploadedUrls: string[] = [];
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      toast({ title: 'Sesión inválida', description: 'Inicia sesión nuevamente.', variant: 'destructive' });
+      return [] as string[];
+    }
+
+    const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/upload-image';
+
     for (const image of images) {
-      const formData = new FormData();
-      formData.append('file', image);
+      const fd = new FormData();
+      fd.append('file', image);
 
       try {
-        const { data, error } = await supabase.functions.invoke('upload-image', {
-          body: formData,
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          }
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
         });
 
-        if (error) {
-          console.error('Error uploading image:', error);
-          toast({
-            title: "Error subiendo imagen",
-            description: `No se pudo subir la imagen: ${error.message}`,
-            variant: "destructive"
-          });
-          continue;
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json?.error || 'Error subiendo imagen');
         }
 
-        const imageUrl = data?.url || data?.data?.publicUrl;
+        const imageUrl = json?.url || json?.data?.publicUrl;
         if (imageUrl) {
           uploadedUrls.push(imageUrl);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Upload error:', err);
         toast({
-          title: "Error subiendo imagen",
-          description: "Error de conexión al subir la imagen",
-          variant: "destructive"
+          title: 'Error subiendo imagen',
+          description: err?.message || 'No se pudo subir la imagen',
+          variant: 'destructive',
         });
       }
     }
