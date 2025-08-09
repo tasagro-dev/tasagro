@@ -42,20 +42,42 @@ export const useProperties = (filters: UsePropertiesFilters = {}) => {
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('propiedades', {
-        body: {
-          action: 'list',
-          filters: {
-            ...filters,
-            publicada: true // Solo propiedades publicadas
-          }
-        }
-      });
+      // Build select with conditional inner join if we need to filter by ubicaciones
+      const selectUbicaciones = (filters.provincia || filters.localidad)
+        ? 'ubicaciones:ubicacion_id!inner ( id, provincia, localidad )'
+        : 'ubicaciones:ubicacion_id ( id, provincia, localidad )';
 
+      const page = filters.page || 1;
+      const limit = filters.limit || 12;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
+        .from('propiedades')
+        .select(`*, ${selectUbicaciones}` as any, { count: 'exact' })
+        .eq('publicada', true)
+        .range(from, to);
+
+      if (filters.tipo_campo) query = query.eq('tipo_campo', filters.tipo_campo);
+      if (typeof filters.hectareas_min === 'number') query = query.gte('cantidad_hectareas', filters.hectareas_min);
+      if (typeof filters.hectareas_max === 'number') query = query.lte('cantidad_hectareas', filters.hectareas_max);
+      if (typeof filters.precio_min === 'number') query = query.gte('precio', filters.precio_min);
+      if (typeof filters.precio_max === 'number') query = query.lte('precio', filters.precio_max);
+      if (filters.servicios && filters.servicios.length > 0) query = query.contains('servicios', filters.servicios);
+
+      if (filters.search && filters.search.trim().length > 0) {
+        const term = filters.search.trim();
+        query = query.or(`titulo.ilike.%${term}%,descripcion.ilike.%${term}%`);
+      }
+
+      if (filters.provincia) query = query.eq('ubicaciones.provincia', filters.provincia);
+      if (filters.localidad) query = query.eq('ubicaciones.localidad', filters.localidad);
+
+      const { data, error, count } = await query;
       if (error) throw error;
 
-      setProperties(data.properties || []);
-      setTotalCount(data.total || 0);
+      setProperties((data as unknown as Property[]) || []);
+      setTotalCount(count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar propiedades');
       setProperties([]);

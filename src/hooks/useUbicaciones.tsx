@@ -20,13 +20,15 @@ export const useUbicaciones = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ubicaciones', {
-        body: { action: 'list' }
-      });
+      const { data, error } = await supabase
+        .from('ubicaciones')
+        .select('id, provincia, localidad, created_at, updated_at')
+        .order('provincia', { ascending: true })
+        .order('localidad', { ascending: true });
 
-      if (error) throw error;
+      if (error) throw error as any;
 
-      setUbicaciones(data || []);
+      setUbicaciones((data as Ubicacion[]) || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar ubicaciones');
     } finally {
@@ -36,13 +38,15 @@ export const useUbicaciones = () => {
 
   const fetchProvincias = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('ubicaciones', {
-        body: { action: 'provincias' }
-      });
+      const { data, error } = await supabase
+        .from('ubicaciones')
+        .select('provincia')
+        .order('provincia', { ascending: true });
 
-      if (error) throw error;
+      if (error) throw error as any;
 
-      setProvincias(data || []);
+      const unique = Array.from(new Set((data || []).map((d: any) => d.provincia)));
+      setProvincias(unique);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar provincias');
     }
