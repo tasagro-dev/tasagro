@@ -14,7 +14,7 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sección Izquierda - Quiero Comprar */}
       <div 
-        className="flex-1 min-h-screen bg-cover bg-center relative flex items-center justify-center"
+        className="flex-1 min-h-[50vh] md:min-h-screen bg-cover bg-center relative flex items-center justify-center"
         style={{ backgroundImage: `url(${campoVerdeImg})` }}
       >
         {/* Overlay oscuro */}
@@ -34,7 +34,7 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
 
       {/* Sección Derecha - Quiero Tasar/Vender */}
       <div 
-        className="flex-1 min-h-screen bg-cover bg-center relative flex items-center justify-center"
+        className="flex-1 min-h-[50vh] md:min-h-screen bg-cover bg-center relative flex items-center justify-center"
         style={{ backgroundImage: `url(${tabletNegociosImg})` }}
       >
         {/* Overlay oscuro */}
