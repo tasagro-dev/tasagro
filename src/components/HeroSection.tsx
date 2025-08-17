@@ -47,7 +47,10 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
             className="bg-agro-gradient hover:bg-agro-600 text-white px-8 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
             onClick={() => navigate('/tasar-campo')}
           >
-            QUIERO TASAR/VENDER MI CAMPO
+            <div className="flex flex-col">
+              <span>QUIERO TASAR</span>
+              <span>/VENDER MI CAMPO</span>
+            </div>
           </Button>
         </div>
       </div>
