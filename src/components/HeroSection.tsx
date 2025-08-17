@@ -44,10 +44,10 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
         <div className="relative z-10 text-center px-6">
           <Button 
             size="lg"
-            className="bg-agro-gradient hover:bg-agro-600 text-white px-12 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
+            className="bg-white/95 backdrop-blur-sm hover:bg-white text-agro-600 hover:text-agro-700 px-8 py-6 text-lg font-bold rounded-2xl shadow-2xl hover:shadow-agro-600/20 transform hover:scale-105 transition-all duration-300 border-2 border-agro-500/20 hover:border-agro-500/40 animate-fade-in"
             onClick={() => navigate('/tasar-campo')}
           >
-            QUIERO TASAR/VENDER MI CAMPO
+            <span className="drop-shadow-sm">QUIERO TASAR/VENDER MI CAMPO</span>
           </Button>
         </div>
       </div>
