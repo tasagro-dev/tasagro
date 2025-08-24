@@ -13,6 +13,9 @@ export interface Property {
   ubicacion_id?: string;
   usuario_id: string;
   publicada: boolean;
+  telefono_codigo_pais?: string;
+  telefono_numero?: string;
+  email_contacto?: string;
   created_at: string;
   updated_at: string;
 }

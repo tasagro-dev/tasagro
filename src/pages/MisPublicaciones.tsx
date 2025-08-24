@@ -18,6 +18,9 @@ interface Property {
   tipo_campo: string;
   publicada: boolean;
   created_at: string;
+  telefono_codigo_pais?: string;
+  telefono_numero?: string;
+  email_contacto?: string;
   ubicaciones?: {
     provincia: string;
     localidad: string;
@@ -212,6 +215,16 @@ const MisPublicaciones = () => {
                     <p className="text-sm">
                       <span className="font-medium">Precio:</span> {formatPrice(property.precio)}
                     </p>
+                    {property.telefono_numero && (
+                      <p className="text-sm">
+                        <span className="font-medium">Teléfono:</span> {property.telefono_codigo_pais} {property.telefono_numero}
+                      </p>
+                    )}
+                    {property.email_contacto && (
+                      <p className="text-sm">
+                        <span className="font-medium">Email:</span> {property.email_contacto}
+                      </p>
+                    )}
                     {property.descripcion && (
                       <p className="text-sm text-gray-600 line-clamp-2">
                         {property.descripcion}

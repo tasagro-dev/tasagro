@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Phone, Mail } from 'lucide-react';
 
 interface Tasacion {
   id: string;
@@ -29,10 +29,30 @@ interface Ubicacion {
   localidad: string;
 }
 
+// Códigos de país más comunes
+const COUNTRY_CODES = [
+  { code: '+54', country: 'Argentina', flag: '🇦🇷' },
+  { code: '+1', country: 'Estados Unidos/Canadá', flag: '🇺🇸' },
+  { code: '+55', country: 'Brasil', flag: '🇧🇷' },
+  { code: '+56', country: 'Chile', flag: '🇨🇱' },
+  { code: '+57', country: 'Colombia', flag: '🇨🇴' },
+  { code: '+598', country: 'Uruguay', flag: '🇺🇾' },
+  { code: '+595', country: 'Paraguay', flag: '🇵🇾' },
+  { code: '+591', country: 'Bolivia', flag: '🇧🇴' },
+  { code: '+51', country: 'Perú', flag: '🇵🇪' },
+  { code: '+593', country: 'Ecuador', flag: '🇪🇨' },
+  { code: '+58', country: 'Venezuela', flag: '🇻🇪' },
+  { code: '+34', country: 'España', flag: '🇪🇸' },
+];
+
 export default function PublicarCampo() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEditing = Boolean(editId);
+  
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
@@ -41,7 +61,10 @@ export default function PublicarCampo() {
     cantidad_hectareas: '',
     tipo_campo: '',
     servicios: [] as string[],
-    tasacion_id: ''
+    tasacion_id: '',
+    telefono_codigo_pais: '+54',
+    telefono_numero: '',
+    email_contacto: ''
   });
   const [images, setImages] = useState<File[]>([]);
   const [tasaciones, setTasaciones] = useState<Tasacion[]>([]);
@@ -58,8 +81,11 @@ export default function PublicarCampo() {
     if (user) {
       fetchTasaciones();
       fetchUbicaciones();
+      if (isEditing && editId) {
+        fetchPropertyForEdit(editId);
+      }
     }
-  }, [user]);
+  }, [user, isEditing, editId]);
 
   const fetchTasaciones = async () => {
     if (!user) return;
@@ -83,6 +109,50 @@ export default function PublicarCampo() {
 
     if (!error && data) {
       setUbicaciones(data as Ubicacion[]);
+    }
+  };
+
+  const fetchPropertyForEdit = async (propertyId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('propiedades')
+        .select(`
+          *,
+          ubicaciones (
+            id,
+            provincia,
+            localidad
+          )
+        `)
+        .eq('id', propertyId)
+        .eq('usuario_id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          titulo: data.titulo || '',
+          descripcion: data.descripcion || '',
+          precio: data.precio?.toString() || '',
+          ubicacion_id: data.ubicacion_id || '',
+          cantidad_hectareas: data.cantidad_hectareas?.toString() || '',
+          tipo_campo: data.tipo_campo || '',
+          servicios: data.servicios || [],
+          tasacion_id: '',
+          telefono_codigo_pais: data.telefono_codigo_pais || '+54',
+          telefono_numero: data.telefono_numero || '',
+          email_contacto: data.email_contacto || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching property for edit:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la propiedad para editar.",
+        variant: "destructive",
+      });
+      navigate('/dashboard/mis-publicaciones');
     }
   };
 
@@ -183,19 +253,23 @@ export default function PublicarCampo() {
         tipo_campo: formData.tipo_campo,
         servicios: formData.servicios,
         foto_destacada: imageUrls[0] || null,
+        telefono_codigo_pais: formData.telefono_codigo_pais,
+        telefono_numero: formData.telefono_numero,
+        email_contacto: formData.email_contacto,
         usuario_id: user.id,
         publicada: true
       };
 
       const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/propiedades';
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({
-          action: 'create',
+          action: isEditing ? 'update' : 'create',
+          id: isEditing ? editId : undefined,
           propiedad: propertyData,
         }),
       });
@@ -226,11 +300,11 @@ export default function PublicarCampo() {
       }
 
       toast({
-        title: "¡Campo publicado!",
-        description: "Tu propiedad ha sido publicada exitosamente en el portal.",
+        title: isEditing ? "¡Campo actualizado!" : "¡Campo publicado!",
+        description: isEditing ? "Tu propiedad ha sido actualizada exitosamente." : "Tu propiedad ha sido publicada exitosamente en el portal.",
       });
 
-      navigate('/dashboard');
+      navigate('/dashboard/mis-publicaciones');
     } catch (error) {
       console.error('Error publishing property:', error);
       toast({
@@ -267,7 +341,9 @@ export default function PublicarCampo() {
               <ArrowLeft className="w-4 h-4" />
               Volver al Dashboard
             </Button>
-            <h1 className="text-xl font-semibold text-gray-900">Publicar Campo</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isEditing ? 'Editar Campo' : 'Publicar Campo'}
+            </h1>
           </div>
         </div>
       </header>
@@ -276,7 +352,7 @@ export default function PublicarCampo() {
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <Card>
           <CardHeader>
-            <CardTitle>Publicá tu campo</CardTitle>
+            <CardTitle>{isEditing ? 'Editar campo' : 'Publicá tu campo'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -402,6 +478,67 @@ export default function PublicarCampo() {
                 </div>
               </div>
 
+              {/* Información de Contacto */}
+              <div className="space-y-4">
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <Phone className="w-5 h-5 mr-2 text-blue-600" />
+                    Información de Contacto
+                  </h3>
+                  
+                  {/* Teléfono */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="telefono_codigo">Código de país</Label>
+                      <Select 
+                        value={formData.telefono_codigo_pais}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, telefono_codigo_pais: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRY_CODES.map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              <span className="flex items-center gap-2">
+                                <span>{country.flag}</span>
+                                <span>{country.code}</span>
+                                <span className="text-xs text-gray-500">{country.country}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="telefono_numero">Número de teléfono</Label>
+                      <Input
+                        id="telefono_numero"
+                        type="tel"
+                        value={formData.telefono_numero}
+                        onChange={(e) => setFormData(prev => ({ ...prev, telefono_numero: e.target.value }))}
+                        placeholder="Ej: 11 1234 5678"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email_contacto" className="flex items-center">
+                      <Mail className="w-4 h-4 mr-1" />
+                      Email de contacto
+                    </Label>
+                    <Input
+                      id="email_contacto"
+                      type="email"
+                      value={formData.email_contacto}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email_contacto: e.target.value }))}
+                      placeholder="tu-email@ejemplo.com"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Fotos */}
               <div className="space-y-2">
                 <Label htmlFor="images">Fotos</Label>
@@ -437,7 +574,10 @@ export default function PublicarCampo() {
               </div>
 
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Publicando...' : 'Publicar campo'}
+                {submitting 
+                  ? (isEditing ? 'Actualizando...' : 'Publicando...') 
+                  : (isEditing ? 'Actualizar campo' : 'Publicar campo')
+                }
               </Button>
             </form>
           </CardContent>

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -84,11 +84,14 @@ export type Database = {
           cantidad_hectareas: number
           created_at: string
           descripcion: string | null
+          email_contacto: string | null
           foto_destacada: string | null
           id: string
           precio: number | null
           publicada: boolean
           servicios: string[] | null
+          telefono_codigo_pais: string | null
+          telefono_numero: string | null
           tipo_campo: string
           titulo: string
           ubicacion_id: string | null
@@ -99,11 +102,14 @@ export type Database = {
           cantidad_hectareas: number
           created_at?: string
           descripcion?: string | null
+          email_contacto?: string | null
           foto_destacada?: string | null
           id?: string
           precio?: number | null
           publicada?: boolean
           servicios?: string[] | null
+          telefono_codigo_pais?: string | null
+          telefono_numero?: string | null
           tipo_campo: string
           titulo: string
           ubicacion_id?: string | null
@@ -114,11 +120,14 @@ export type Database = {
           cantidad_hectareas?: number
           created_at?: string
           descripcion?: string | null
+          email_contacto?: string | null
           foto_destacada?: string | null
           id?: string
           precio?: number | null
           publicada?: boolean
           servicios?: string[] | null
+          telefono_codigo_pais?: string | null
+          telefono_numero?: string | null
           tipo_campo?: string
           titulo?: string
           ubicacion_id?: string | null

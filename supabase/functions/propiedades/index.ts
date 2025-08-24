@@ -21,6 +21,9 @@ interface Database {
           usuario_id: string
           publicada: boolean
           precio: number | null
+          telefono_codigo_pais: string | null
+          telefono_numero: string | null
+          email_contacto: string | null
           created_at: string
           updated_at: string
         }
@@ -36,6 +39,9 @@ interface Database {
           usuario_id: string
           publicada?: boolean
           precio?: number | null
+          telefono_codigo_pais?: string | null
+          telefono_numero?: string | null
+          email_contacto?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -51,6 +57,9 @@ interface Database {
           usuario_id?: string
           publicada?: boolean
           precio?: number | null
+          telefono_codigo_pais?: string | null
+          telefono_numero?: string | null
+          email_contacto?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -261,9 +270,17 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Handle wrapped format from frontend
+      let updateData;
+      if (body.action === 'update' && body.propiedad) {
+        updateData = body.propiedad;
+      } else {
+        updateData = body;
+      }
+
       const { data, error } = await supabaseClient
         .from('propiedades')
-        .update(body)
+        .update(updateData)
         .eq('id', id)
         .eq('usuario_id', user.id)
         .select()
