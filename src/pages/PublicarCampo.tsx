@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Upload, Trash2, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Phone, Mail, Plus } from 'lucide-react';
 
 interface Tasacion {
   id: string;
@@ -70,6 +70,7 @@ export default function PublicarCampo() {
   const [tasaciones, setTasaciones] = useState<Tasacion[]>([]);
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -199,6 +200,10 @@ export default function PublicarCampo() {
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const uploadImages = async () => {
@@ -561,13 +566,25 @@ export default function PublicarCampo() {
                   </span>
                 </div>
                 <Input
+                  ref={fileInputRef}
                   id="images"
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleImageUpload}
                   disabled={images.length >= 15}
+                  className="hidden"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={triggerFileInput}
+                  disabled={images.length >= 15}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Elegir archivos
+                </Button>
                 {images.length >= 15 && (
                   <p className="text-sm text-orange-600">
                     Has alcanzado el límite máximo de 15 fotos. Elimina alguna para agregar más.
@@ -593,6 +610,14 @@ export default function PublicarCampo() {
                         </Button>
                       </div>
                     ))}
+                    {images.length < 15 && (
+                      <div 
+                        className="w-full h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors"
+                        onClick={triggerFileInput}
+                      >
+                        <Plus className="w-8 h-8 text-gray-400 hover:text-primary" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
