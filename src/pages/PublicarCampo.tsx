@@ -181,7 +181,20 @@ export default function PublicarCampo() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const remainingSlots = 15 - images.length;
+    
+    if (files.length > remainingSlots) {
+      toast({
+        title: "Límite de imágenes",
+        description: `Solo puedes agregar ${remainingSlots} imágenes más. Máximo 15 fotos en total.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setImages(prev => [...prev, ...files]);
+    // Clear the input so the same files can be selected again if needed
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -541,14 +554,25 @@ export default function PublicarCampo() {
 
               {/* Fotos */}
               <div className="space-y-2">
-                <Label htmlFor="images">Fotos</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="images">Fotos ({images.length}/15)</Label>
+                  <span className="text-sm text-gray-500">
+                    Máximo 15 fotos
+                  </span>
+                </div>
                 <Input
                   id="images"
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleImageUpload}
+                  disabled={images.length >= 15}
                 />
+                {images.length >= 15 && (
+                  <p className="text-sm text-orange-600">
+                    Has alcanzado el límite máximo de 15 fotos. Elimina alguna para agregar más.
+                  </p>
+                )}
                 {images.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {images.map((image, index) => (
