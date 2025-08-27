@@ -209,6 +209,29 @@ export default function PublicarCampo() {
   const uploadImages = async () => {
     if (!user || images.length === 0) return [];
 
+    // Filter images by size before uploading
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validImages = images.filter(image => image.size <= maxSize);
+    const oversizedImages = images.filter(image => image.size > maxSize);
+
+    // Show warning for oversized images
+    if (oversizedImages.length > 0) {
+      toast({
+        title: 'Imágenes demasiado grandes',
+        description: `${oversizedImages.length} imagen(es) exceden 5MB y no serán subidas. Se procesarán solo las imágenes válidas.`,
+        variant: 'destructive',
+      });
+    }
+
+    if (validImages.length === 0) {
+      toast({
+        title: 'No hay imágenes válidas',
+        description: 'Todas las imágenes seleccionadas exceden el límite de 5MB.',
+        variant: 'destructive',
+      });
+      return [];
+    }
+
     const uploadedUrls: string[] = [];
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
@@ -219,7 +242,8 @@ export default function PublicarCampo() {
 
     const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/upload-image';
 
-    for (const image of images) {
+    for (let i = 0; i < validImages.length; i++) {
+      const image = validImages[i];
       const fd = new FormData();
       fd.append('file', image);
 
@@ -242,7 +266,7 @@ export default function PublicarCampo() {
       } catch (err: any) {
         console.error('Upload error:', err);
         toast({
-          title: 'Error subiendo imagen',
+          title: `Error subiendo imagen ${i + 1}`,
           description: err?.message || 'No se pudo subir la imagen',
           variant: 'destructive',
         });

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface PropertyImage {
+  id: string;
+  imagen_url: string;
+  es_destacada: boolean;
+  orden: number;
+}
+
 export interface Property {
   id: string;
   titulo: string;
@@ -18,6 +25,7 @@ export interface Property {
   email_contacto?: string;
   created_at: string;
   updated_at: string;
+  imagenes?: PropertyImage[];
 }
 
 interface UsePropertiesFilters {
@@ -57,7 +65,7 @@ export const useProperties = (filters: UsePropertiesFilters = {}) => {
 
       let query = supabase
         .from('propiedades')
-        .select(`*, ${selectUbicaciones}` as any, { count: 'exact' })
+        .select(`*, ${selectUbicaciones}, propiedad_imagenes(id, imagen_url, es_destacada, orden)` as any, { count: 'exact' })
         .eq('publicada', true)
         .range(from, to);
 
@@ -79,7 +87,13 @@ export const useProperties = (filters: UsePropertiesFilters = {}) => {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      setProperties((data as unknown as Property[]) || []);
+      // Transform data to include sorted images
+      const processedProperties = (data as any[])?.map((property) => ({
+        ...property,
+        imagenes: property.propiedad_imagenes?.sort((a: any, b: any) => a.orden - b.orden) || []
+      })) || [];
+
+      setProperties(processedProperties);
       setTotalCount(count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar propiedades');
