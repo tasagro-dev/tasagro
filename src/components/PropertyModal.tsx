@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, Calendar, Ruler, DollarSign, Phone, Mail, User } from 'lucide-react';
+import { MapPin, Calendar, Ruler, DollarSign, Phone, Mail, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Property } from '@/hooks/useProperties';
 
 interface PropertyModalProps {
@@ -12,6 +13,8 @@ interface PropertyModalProps {
 }
 
 export const PropertyModal = ({ property, isOpen, onClose }: PropertyModalProps) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
   if (!property) return null;
 
   const formatPrice = (price?: number) => {
@@ -38,6 +41,29 @@ export const PropertyModal = ({ property, isOpen, onClose }: PropertyModalProps)
     return `https://minypmsdvdhktkekbeaj.supabase.co/storage/v1/object/public/property-images/${imagePath}`;
   };
 
+  const getAllImages = () => {
+    const images = [];
+    if (property.imagenes && property.imagenes.length > 0) {
+      // Sort by order and add all images
+      images.push(...property.imagenes.map(img => img.imagen_url));
+    } else if (property.foto_destacada) {
+      // Fallback to featured image only
+      images.push(property.foto_destacada);
+    }
+    return images.length > 0 ? images : ['/placeholder.svg'];
+  };
+
+  const images = getAllImages();
+  const currentImage = images[currentImageIndex];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -62,16 +88,71 @@ export const PropertyModal = ({ property, isOpen, onClose }: PropertyModalProps)
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Imagen principal */}
-          <div className="aspect-[16/9] rounded-lg overflow-hidden bg-muted">
-            <img
-              src={getImageUrl(property.foto_destacada)}
-              alt={property.titulo}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder.svg';
-              }}
-            />
+          {/* Galería de imágenes */}
+          <div className="space-y-3">
+            <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-muted">
+              <img
+                src={getImageUrl(currentImage)}
+                alt={`${property.titulo} - Imagen ${currentImageIndex + 1}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
+              
+              {images.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white border-0"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white border-0"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="absolute bottom-3 right-3">
+                    <div className="bg-black/70 text-white px-2 py-1 rounded-full text-sm">
+                      {currentImageIndex + 1} / {images.length}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                      index === currentImageIndex 
+                        ? 'border-primary shadow-md' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                  >
+                    <img
+                      src={getImageUrl(image)}
+                      alt={`Vista previa ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Información principal */}

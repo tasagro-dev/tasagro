@@ -22,13 +22,13 @@ export const useUbicaciones = () => {
     try {
       const { data, error } = await supabase
         .from('ubicaciones')
-        .select('*')
+        .select('id, provincia, localidad, created_at, updated_at')
         .order('provincia', { ascending: true })
         .order('localidad', { ascending: true });
 
-      if (error) throw error;
+      if (error) throw error as any;
 
-      setUbicaciones(data || []);
+      setUbicaciones((data as Ubicacion[]) || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar ubicaciones');
     } finally {
@@ -43,11 +43,10 @@ export const useUbicaciones = () => {
         .select('provincia')
         .order('provincia', { ascending: true });
 
-      if (error) throw error;
+      if (error) throw error as any;
 
-      // Extraer provincias únicas
-      const provinciasUnicas = [...new Set(data?.map(item => item.provincia) || [])];
-      setProvincias(provinciasUnicas);
+      const unique = Array.from(new Set((data || []).map((d: any) => d.provincia)));
+      setProvincias(unique);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar provincias');
     }

@@ -69,12 +69,12 @@ export const PropertyFilters = ({
       {/* Tipo de Campo */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">Tipo de Campo</Label>
-        <Select value={filters.tipo_campo} onValueChange={(value) => onFilterChange('tipo_campo', value)}>
+        <Select value={filters.tipo_campo} onValueChange={(value) => onFilterChange('tipo_campo', value === 'todos' ? '' : value)}>
           <SelectTrigger>
             <SelectValue placeholder="Seleccionar tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos los tipos</SelectItem>
+            <SelectItem value="todos">Todos los tipos</SelectItem>
             {TIPOS_CAMPO.map(tipo => (
               <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
             ))}

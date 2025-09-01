@@ -1,132 +1,165 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useUbicaciones, useLocalidades } from '@/hooks/useUbicaciones';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-import { Loader2, Upload, X, ArrowLeft, MapPin, DollarSign, Image as ImageIcon } from 'lucide-react';
-import GoogleMap from '@/components/GoogleMap';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { InformacionGeneral } from '@/components/PropertyForm/InformacionGeneral';
+import { SueloRecursos } from '@/components/PropertyForm/SueloRecursos';
+import { InfraestructuraInstalaciones } from '@/components/PropertyForm/InfraestructuraInstalaciones';
+import { AccesibilidadServicios } from '@/components/PropertyForm/AccesibilidadServicios';
+import { UsoActualPotencial } from '@/components/PropertyForm/UsoActualPotencial';
+import { FactoresLegales } from '@/components/PropertyForm/FactoresLegales';
 
-type Tasacion = Tables<'tasaciones'>;
+interface Tasacion {
+  id: string;
+  nombre_propiedad: string;
+  hectareas: number;
+  provincia: string;
+  partido: string;
+  localidad: string;
+  tipo_campo: string;
+  valor_estimado?: number;
+}
 
-type FormData = {
-  titulo: string;
-  descripcion: string;
-  precio: number;
+interface Ubicacion {
+  id: string;
   provincia: string;
   localidad: string;
-  cantidad_hectareas: number;
+}
+
+interface ExtendedFormData {
+  // Información General (ya existente)
+  titulo: string;
+  descripcion: string;
+  precio: string;
+  ubicacion_id: string;
+  cantidad_hectareas: string;
   tipo_campo: string;
   servicios: string[];
-  publicar_inmediatamente: boolean;
-};
+  tasacion_id: string;
+  telefono_codigo_pais: string;
+  telefono_numero: string;
+  email_contacto: string;
+  
+  // Suelo y Recursos Naturales
+  calidad_suelo: string;
+  acceso_agua: boolean;
+  sistema_riego: string;
+  salinidad_suelo: number;
+  rocas_accidentes: string;
+  cultivos_viables: string[];
+  
+  // Infraestructura e Instalaciones
+  uso_actual: string;
+  infraestructura_hidrica: string[];
+  instalaciones_ganaderia: string[];
+  instalaciones_agricultura: string[];
+  tipos_alambrado: string[];
+  energia_renovable: boolean;
+  
+  // Accesibilidad y Servicios
+  conectividad_vial: boolean;
+  conectividad_vial_descripcion: string;
+  distancia_acopio: string;
+  electricidad: string;
+  agua_potable: string;
+  gas: string;
+  conectividad_servicios: string[];
+  
+  // Uso Actual y Potencial
+  cambio_cultivo: boolean;
+  cambio_cultivo_descripcion: string;
+  indice_productividad: number;
+  
+  // Factores Legales
+  titularidad_perfecta: boolean;
+  indivision_hereditaria: boolean;
+  hipoteca_gravamenes: boolean;
+  hipoteca_gravamenes_detalle: string;
+  servidumbres_activas: string[];
+  restricciones_uso: string;
+  regulaciones_ambientales: string;
+  zonificacion: string;
+  derechos_terceros: string;
+  cargas_afectaciones: string;
+  impuestos_al_dia: boolean;
+}
 
-const tiposCampo = [
-  { value: 'agrícola', label: 'Agrícola' },
-  { value: 'ganadero', label: 'Ganadero' },
-  { value: 'mixto', label: 'Mixto' },
-  { value: 'forestal', label: 'Forestal' }
-];
-
-const serviciosOptions = [
-  'electricidad',
-  'agua',
-  'gas',
-  'internet',
-  'caminos',
-  'alambrado',
-  'molino',
-  'aguadas',
-  'corrales',
-  'casa',
-  'galpón'
-];
-
-const PublicarCampo = () => {
+export default function PublicarCampo() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { provincias, loading: loadingProvincias, error: errorProvincias } = useUbicaciones();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEditing = Boolean(editId);
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [tasacionData, setTasacionData] = useState<Tasacion | null>(null);
-
-  // Obtener datos de tasación desde la URL si existe
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const tasacionId = searchParams.get('tasacion_id');
+  const [formData, setFormData] = useState<ExtendedFormData>({
+    // Información General
+    titulo: '',
+    descripcion: '',
+    precio: '',
+    ubicacion_id: '',
+    cantidad_hectareas: '',
+    tipo_campo: '',
+    servicios: [],
+    tasacion_id: '',
+    telefono_codigo_pais: '+54',
+    telefono_numero: '',
+    email_contacto: '',
     
-    if (tasacionId && user) {
-      fetchTasacionData(tasacionId);
-    }
-  }, [location.search, user]);
-
-  const fetchTasacionData = async (tasacionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasaciones')
-        .select('*')
-        .eq('id', tasacionId)
-        .eq('user_id', user!.id)
-        .single();
-
-      if (error) throw error;
-      
-      if (data) {
-        setTasacionData(data);
-        // Precargar el formulario con los datos de la tasación
-        form.reset({
-          titulo: data.nombre_propiedad || '',
-          descripcion: `Campo ${data.tipo_campo} de ${data.hectareas} hectáreas ubicado en ${data.localidad}, ${data.partido}, ${data.provincia}.`,
-          precio: data.valor_estimado || 0,
-          provincia: data.provincia,
-          localidad: data.localidad,
-          cantidad_hectareas: data.hectareas,
-          tipo_campo: data.tipo_campo,
-          servicios: data.servicios || [],
-          publicar_inmediatamente: false
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching tasacion data:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar los datos de la tasación.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const form = useForm<FormData>({
-    defaultValues: {
-      titulo: '',
-      descripcion: '',
-      precio: 0,
-      provincia: '',
-      localidad: '',
-      cantidad_hectareas: 0,
-      tipo_campo: '',
-      servicios: [],
-      publicar_inmediatamente: false
-    }
+    // Suelo y Recursos Naturales
+    calidad_suelo: '',
+    acceso_agua: false,
+    sistema_riego: '',
+    salinidad_suelo: 0,
+    rocas_accidentes: '',
+    cultivos_viables: [],
+    
+    // Infraestructura e Instalaciones
+    uso_actual: '',
+    infraestructura_hidrica: [],
+    instalaciones_ganaderia: [],
+    instalaciones_agricultura: [],
+    tipos_alambrado: [],
+    energia_renovable: false,
+    
+    // Accesibilidad y Servicios
+    conectividad_vial: false,
+    conectividad_vial_descripcion: '',
+    distancia_acopio: '',
+    electricidad: '',
+    agua_potable: '',
+    gas: '',
+    conectividad_servicios: [],
+    
+    // Uso Actual y Potencial
+    cambio_cultivo: false,
+    cambio_cultivo_descripcion: '',
+    indice_productividad: 50,
+    
+    // Factores Legales
+    titularidad_perfecta: false,
+    indivision_hereditaria: false,
+    hipoteca_gravamenes: false,
+    hipoteca_gravamenes_detalle: '',
+    servidumbres_activas: [],
+    restricciones_uso: '',
+    regulaciones_ambientales: '',
+    zonificacion: '',
+    derechos_terceros: '',
+    cargas_afectaciones: '',
+    impuestos_al_dia: false
   });
-
-  const provinciaSeleccionada = form.watch('provincia');
-  const { localidades, loading: loadingLocalidades, error: errorLocalidades } = useLocalidades(provinciaSeleccionada);
+  const [images, setImages] = useState<File[]>([]);
+  const [tasaciones, setTasaciones] = useState<Tasacion[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -134,612 +167,613 @@ const PublicarCampo = () => {
     }
   }, [user, loading, navigate]);
 
-  const uploadImages = async (): Promise<string[]> => {
-    if (selectedFiles.length === 0) {
+  useEffect(() => {
+    if (user) {
+      fetchTasaciones();
+      fetchUbicaciones();
+      if (isEditing && editId) {
+        fetchPropertyForEdit(editId);
+      }
+    }
+  }, [user, isEditing, editId]);
+
+  const fetchTasaciones = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('tasaciones')
+      .select('id, nombre_propiedad, hectareas, provincia, partido, localidad, tipo_campo, valor_estimado')
+      .eq('user_id', user.id);
+
+    if (!error && data) {
+      setTasaciones(data);
+    }
+  };
+
+  const fetchUbicaciones = async () => {
+    const { data, error } = await supabase
+      .from('ubicaciones')
+      .select('id, provincia, localidad')
+      .order('provincia', { ascending: true })
+      .order('localidad', { ascending: true });
+
+    if (!error && data) {
+      setUbicaciones(data as Ubicacion[]);
+    }
+  };
+
+  const fetchPropertyForEdit = async (propertyId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('propiedades')
+        .select(`
+          *,
+          ubicaciones (
+            id,
+            provincia,
+            localidad
+          )
+        `)
+        .eq('id', propertyId)
+        .eq('usuario_id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          titulo: data.titulo || '',
+          descripcion: data.descripcion || '',
+          precio: data.precio?.toString() || '',
+          ubicacion_id: data.ubicacion_id || '',
+          cantidad_hectareas: data.cantidad_hectareas?.toString() || '',
+          tipo_campo: data.tipo_campo || '',
+          servicios: data.servicios || [],
+          telefono_codigo_pais: data.telefono_codigo_pais || '+54',
+          telefono_numero: data.telefono_numero || '',
+          email_contacto: data.email_contacto || '',
+          
+          // Nuevos campos (mantener valores por defecto si no existen)
+          calidad_suelo: data.calidad_suelo || '',
+          acceso_agua: data.acceso_agua || false,
+          sistema_riego: data.sistema_riego || '',
+          salinidad_suelo: data.salinidad_suelo || 0,
+          rocas_accidentes: data.rocas_accidentes || '',
+          uso_actual: data.uso_actual || '',
+          conectividad_vial: data.conectividad_vial || false,
+          conectividad_vial_descripcion: data.conectividad_vial_descripcion || '',
+          distancia_acopio: data.distancia_acopio?.toString() || '',
+          electricidad: data.electricidad || '',
+          agua_potable: data.agua_potable || '',
+          gas: data.gas || '',
+          cambio_cultivo: data.cambio_cultivo || false,
+          cambio_cultivo_descripcion: data.cambio_cultivo_descripcion || '',
+          indice_productividad: data.indice_productividad || 50,
+          energia_renovable: data.energia_renovable || false,
+          titularidad_perfecta: data.titularidad_perfecta || false,
+          indivision_hereditaria: data.indivision_hereditaria || false,
+          hipoteca_gravamenes: data.hipoteca_gravamenes || false,
+          hipoteca_gravamenes_detalle: data.hipoteca_gravamenes_detalle || '',
+          restricciones_uso: data.restricciones_uso || '',
+          regulaciones_ambientales: data.regulaciones_ambientales || '',
+          zonificacion: data.zonificacion || '',
+          derechos_terceros: data.derechos_terceros || '',
+          cargas_afectaciones: data.cargas_afectaciones || '',
+          impuestos_al_dia: data.impuestos_al_dia || false
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching property for edit:', error);
       toast({
-        title: "Imágenes requeridas",
-        description: "Debes subir al menos una imagen del campo.",
+        title: "Error",
+        description: "No se pudo cargar la propiedad para editar.",
         variant: "destructive",
       });
-      throw new Error('No images selected');
-    }
-
-    const uploadPromises = selectedFiles.map(async (file, index) => {
-      const fileName = `${user!.id}/${Date.now()}_${index}_${file.name}`;
-      
-      const { error } = await supabase.storage
-        .from('property-images')
-        .upload(fileName, file);
-
-      if (error) {
-        console.error('Error uploading image:', error);
-        throw error;
-      }
-
-      const { data } = supabase.storage
-        .from('property-images')
-        .getPublicUrl(fileName);
-
-      return data.publicUrl;
-    });
-
-    const urls = await Promise.all(uploadPromises);
-    return urls;
-  };
-
-  const createOrGetUbicacion = async (provincia: string, localidad: string): Promise<string | null> => {
-    try {
-      // Buscar si ya existe la ubicación
-      const { data: existingUbicacion } = await supabase
-        .from('ubicaciones')
-        .select('id')
-        .eq('provincia', provincia)
-        .eq('localidad', localidad)
-        .single();
-
-      if (existingUbicacion) {
-        return existingUbicacion.id;
-      }
-
-      // Si no existe, crear nueva ubicación
-      const { data: newUbicacion, error } = await supabase
-        .from('ubicaciones')
-        .insert({
-          provincia,
-          localidad
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
-      return newUbicacion.id;
-    } catch (error) {
-      console.error('Error creating/getting ubicacion:', error);
-      return null;
+      navigate('/dashboard/mis-publicaciones');
     }
   };
 
-  const onSubmit = async (data: FormData) => {
-    if (!user) return;
+  const handleTasacionSelect = (tasacionId: string) => {
+    const tasacion = tasaciones.find(t => t.id === tasacionId);
+    if (tasacion) {
+      setFormData(prev => ({
+        ...prev,
+        titulo: tasacion.nombre_propiedad || '',
+        cantidad_hectareas: tasacion.hectareas.toString(),
+        tipo_campo: tasacion.tipo_campo,
+        precio: tasacion.valor_estimado?.toString() || '',
+        tasacion_id: tasacionId
+      }));
+    }
+  };
 
-    setIsSubmitting(true);
-    setUploadProgress(0);
+  // Función auxiliar para guardar relaciones many-to-many
+  const saveRelations = async (propertyId: string) => {
+    const relationPromises = [];
 
-    try {
-      // Subir imágenes
-      setUploadProgress(20);
-      const imageUrls = await uploadImages();
-      setUploadProgress(60);
+    // Cultivos viables
+    if (formData.cultivos_viables.length > 0) {
+      const cultivoRecords = formData.cultivos_viables.map(cultivoId => ({
+        propiedad_id: propertyId,
+        cultivo_id: cultivoId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_cultivos').insert(cultivoRecords)
+      );
+    }
 
-      // Crear o obtener ubicación
-      const ubicacionId = await createOrGetUbicacion(data.provincia, data.localidad);
-      setUploadProgress(80);
+    // Instalaciones de ganadería
+    if (formData.instalaciones_ganaderia.length > 0) {
+      const ganaderiaRecords = formData.instalaciones_ganaderia.map(instalacionId => ({
+        propiedad_id: propertyId,
+        instalacion_id: instalacionId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_instalaciones_ganaderia').insert(ganaderiaRecords)
+      );
+    }
 
-      // Guardar propiedad en la base de datos
-      const { error } = await supabase
-        .from('propiedades')
-        .insert({
-          titulo: data.titulo,
-          descripcion: data.descripcion,
-          precio: data.precio,
-          cantidad_hectareas: data.cantidad_hectareas,
-          tipo_campo: data.tipo_campo,
-          servicios: data.servicios,
-          foto_destacada: imageUrls[0], // Primera imagen como destacada
-          ubicacion_id: ubicacionId,
-          usuario_id: user.id,
-          publicada: data.publicar_inmediatamente
+    // Instalaciones de agricultura
+    if (formData.instalaciones_agricultura.length > 0) {
+      const agriculturaRecords = formData.instalaciones_agricultura.map(instalacionId => ({
+        propiedad_id: propertyId,
+        instalacion_id: instalacionId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_instalaciones_agricultura').insert(agriculturaRecords)
+      );
+    }
+
+    // Tipos de alambrado
+    if (formData.tipos_alambrado.length > 0) {
+      const alambradoRecords = formData.tipos_alambrado.map(tipoId => ({
+        propiedad_id: propertyId,
+        tipo_alambrado_id: tipoId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_alambrados').insert(alambradoRecords)
+      );
+    }
+
+    // Infraestructura hídrica
+    if (formData.infraestructura_hidrica.length > 0) {
+      const hidricaRecords = formData.infraestructura_hidrica.map(infraId => ({
+        propiedad_id: propertyId,
+        infraestructura_id: infraId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_infraestructura_hidrica').insert(hidricaRecords)
+      );
+    }
+
+    // Servidumbres
+    if (formData.servidumbres_activas.length > 0) {
+      const servidumbreRecords = formData.servidumbres_activas.map(servidumbreId => ({
+        propiedad_id: propertyId,
+        servidumbre_id: servidumbreId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_servidumbres').insert(servidumbreRecords)
+      );
+    }
+
+    // Conectividad
+    if (formData.conectividad_servicios.length > 0) {
+      const conectividadRecords = formData.conectividad_servicios.map(conectividadId => ({
+        propiedad_id: propertyId,
+        conectividad_id: conectividadId
+      }));
+      relationPromises.push(
+        supabase.from('propiedad_conectividad').insert(conectividadRecords)
+      );
+    }
+
+    if (relationPromises.length > 0) {
+      await Promise.all(relationPromises);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remainingSlots = 15 - images.length;
+    
+    if (files.length > remainingSlots) {
+      toast({
+        title: "Límite de imágenes",
+        description: `Solo puedes agregar ${remainingSlots} imágenes más. Máximo 15 fotos en total.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setImages(prev => [...prev, ...files]);
+    // Clear the input so the same files can be selected again if needed
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const uploadImages = async () => {
+    if (!user || images.length === 0) return [];
+
+    // Filter images by size before uploading
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validImages = images.filter(image => image.size <= maxSize);
+    const oversizedImages = images.filter(image => image.size > maxSize);
+
+    // Show warning for oversized images
+    if (oversizedImages.length > 0) {
+      toast({
+        title: 'Imágenes demasiado grandes',
+        description: `${oversizedImages.length} imagen(es) exceden 5MB y no serán subidas. Se procesarán solo las imágenes válidas.`,
+        variant: 'destructive',
+      });
+    }
+
+    if (validImages.length === 0) {
+      toast({
+        title: 'No hay imágenes válidas',
+        description: 'Todas las imágenes seleccionadas exceden el límite de 5MB.',
+        variant: 'destructive',
+      });
+      return [];
+    }
+
+    const uploadedUrls: string[] = [];
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      toast({ title: 'Sesión inválida', description: 'Inicia sesión nuevamente.', variant: 'destructive' });
+      return [] as string[];
+    }
+
+    const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/upload-image';
+
+    for (let i = 0; i < validImages.length; i++) {
+      const image = validImages[i];
+      const fd = new FormData();
+      fd.append('file', image);
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
         });
 
-      if (error) throw error;
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json?.error || 'Error subiendo imagen');
+        }
 
-      setUploadProgress(100);
+        const imageUrl = json?.url || json?.data?.publicUrl;
+        if (imageUrl) {
+          uploadedUrls.push(imageUrl);
+        }
+      } catch (err: any) {
+        console.error('Upload error:', err);
+        toast({
+          title: `Error subiendo imagen ${i + 1}`,
+          description: err?.message || 'No se pudo subir la imagen',
+          variant: 'destructive',
+        });
+      }
+    }
 
-      toast({
-        title: "¡Campo publicado exitosamente!",
-        description: data.publicar_inmediatamente 
-          ? "Tu campo ya está visible en el portal de compras."
-          : "Tu campo se guardó como borrador. Puedes publicarlo más tarde desde el Dashboard.",
+    return uploadedUrls;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setSubmitting(true);
+
+    try {
+      // Upload images first
+      const imageUrls = await uploadImages();
+
+      const propertyData = {
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        precio: formData.precio ? parseFloat(formData.precio) : null,
+        ubicacion_id: formData.ubicacion_id || null,
+        cantidad_hectareas: parseFloat(formData.cantidad_hectareas),
+        tipo_campo: formData.tipo_campo,
+        servicios: formData.servicios,
+        foto_destacada: imageUrls[0] || null,
+        telefono_codigo_pais: formData.telefono_codigo_pais,
+        telefono_numero: formData.telefono_numero,
+        email_contacto: formData.email_contacto,
+        usuario_id: user.id,
+        publicada: true,
+        
+        // Nuevos campos de Suelo y Recursos Naturales
+        calidad_suelo: formData.calidad_suelo,
+        acceso_agua: formData.acceso_agua,
+        sistema_riego: formData.sistema_riego,
+        salinidad_suelo: formData.salinidad_suelo,
+        rocas_accidentes: formData.rocas_accidentes,
+        
+        // Nuevos campos de Infraestructura
+        uso_actual: formData.uso_actual,
+        energia_renovable: formData.energia_renovable,
+        
+        // Nuevos campos de Accesibilidad y Servicios
+        conectividad_vial: formData.conectividad_vial,
+        conectividad_vial_descripcion: formData.conectividad_vial_descripcion,
+        distancia_acopio: formData.distancia_acopio ? parseFloat(formData.distancia_acopio) : null,
+        electricidad: formData.electricidad,
+        agua_potable: formData.agua_potable,
+        gas: formData.gas,
+        
+        // Nuevos campos de Uso Actual y Potencial
+        cambio_cultivo: formData.cambio_cultivo,
+        cambio_cultivo_descripcion: formData.cambio_cultivo_descripcion,
+        indice_productividad: formData.indice_productividad,
+        
+        // Nuevos campos de Factores Legales
+        titularidad_perfecta: formData.titularidad_perfecta,
+        indivision_hereditaria: formData.indivision_hereditaria,
+        hipoteca_gravamenes: formData.hipoteca_gravamenes,
+        hipoteca_gravamenes_detalle: formData.hipoteca_gravamenes_detalle,
+        restricciones_uso: formData.restricciones_uso,
+        regulaciones_ambientales: formData.regulaciones_ambientales,
+        zonificacion: formData.zonificacion,
+        derechos_terceros: formData.derechos_terceros,
+        cargas_afectaciones: formData.cargas_afectaciones,
+        impuestos_al_dia: formData.impuestos_al_dia
+      };
+
+      const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/propiedades';
+      const res = await fetch(endpoint, {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: isEditing ? 'update' : 'create',
+          id: isEditing ? editId : undefined,
+          propiedad: propertyData,
+        }),
       });
 
-      // Redirigir al Dashboard
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      const respJson = await res.json();
+      if (!res.ok) throw new Error(respJson?.error || 'Error publicando');
 
+      const data = respJson;
+
+      // If we have additional images and the property was created successfully
+      if (data?.data?.id && imageUrls.length > 0) {
+        try {
+          // Save all images to the propiedad_imagenes table
+          const imageRecords = imageUrls.map((url, index) => ({
+            propiedad_id: data.data.id,
+            imagen_url: url,
+            es_destacada: index === 0,
+            orden: index
+          }));
+
+          await supabase
+            .from('propiedad_imagenes')
+            .insert(imageRecords);
+        } catch (imageError) {
+          console.error('Error saving additional images:', imageError);
+          // Don't fail the entire process if image saving fails
+        }
+      }
+
+      // Save relations for new properties
+      if (data?.data?.id && !isEditing) {
+        try {
+          await saveRelations(data.data.id);
+        } catch (relationError) {
+          console.error('Error saving property relations:', relationError);
+          // Don't fail the entire process if relation saving fails
+        }
+      }
+
+      toast({
+        title: isEditing ? "¡Campo actualizado!" : "¡Campo publicado!",
+        description: isEditing ? "Tu propiedad ha sido actualizada exitosamente." : "Tu propiedad ha sido publicada exitosamente en el portal.",
+      });
+
+      navigate('/dashboard/mis-publicaciones');
     } catch (error) {
-      console.error('Error publishing campo:', error);
+      console.error('Error publishing property:', error);
       toast({
         title: "Error",
         description: "No se pudo publicar el campo. Intenta nuevamente.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
-      setUploadProgress(0);
+      setSubmitting(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 10) {
-      toast({
-        title: "Máximo 10 imágenes",
-        description: "Solo puedes subir hasta 10 imágenes por publicación.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setSelectedFiles(files);
-  };
-
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleProvinciaChange = (provincia: string) => {
-    form.setValue('provincia', provincia);
-    form.setValue('localidad', ''); // Reset localidad when provincia changes
-  };
-
-  if (loading || loadingProvincias) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="mr-2"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-              <div className="flex items-center justify-center w-10 h-10">
-                <img 
-                  src="/lovable-uploads/142fdbf6-524d-4445-85ef-679e2cb9aecf.png" 
-                  alt="TasAgro Logo" 
-                  className="w-10 h-10 object-contain"
-                />
-              </div>
-              <span className="text-xl font-bold text-agro-gradient">Publicar Campo</span>
-            </div>
+          <div className="flex items-center h-16">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 mr-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver al Dashboard
+            </Button>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isEditing ? 'Editar Campo' : 'Publicar Campo'}
+            </h1>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Publicar Campo en el Portal
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {tasacionData 
-              ? "Completa los datos para publicar tu campo tasado en el portal de compras."
-              : "Crea una publicación profesional para vender tu campo rural."
-            }
-          </p>
-        </div>
+      <main className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {isEditing ? 'Editar campo' : 'Publicar campo'}
+              <CheckCircle className="w-5 h-5 text-primary" />
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Complete toda la información del campo organizizada en secciones para crear una publicación completa.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="general" className="text-xs sm:text-sm">
+                    General
+                  </TabsTrigger>
+                  <TabsTrigger value="suelo" className="text-xs sm:text-sm">
+                    Suelo
+                  </TabsTrigger>
+                  <TabsTrigger value="infraestructura" className="text-xs sm:text-sm">
+                    Infraest.
+                  </TabsTrigger>
+                  <TabsTrigger value="servicios" className="text-xs sm:text-sm">
+                    Servicios
+                  </TabsTrigger>
+                  <TabsTrigger value="uso" className="text-xs sm:text-sm">
+                    Uso
+                  </TabsTrigger>
+                  <TabsTrigger value="legales" className="text-xs sm:text-sm">
+                    Legales
+                  </TabsTrigger>
+                </TabsList>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Información básica */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ImageIcon className="w-5 h-5 mr-2 text-green-600" />
-                  Información básica
-                </CardTitle>
-                <CardDescription>
-                  Datos principales de la publicación
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="titulo"
-                  rules={{ required: "El título es requerido" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título de la publicación *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Ej: Campo agrícola en Pergamino, 150 hectáreas" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="descripcion"
-                  rules={{ required: "La descripción es requerida" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descripción *</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe las características del campo, mejoras, accesibilidad, etc."
-                          rows={4}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="precio"
-                  rules={{ 
-                    required: "El precio es requerido",
-                    min: { value: 0, message: "El precio debe ser mayor a 0" }
-                  }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Precio final (USD) *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="Ej: 1500000" 
-                          {...field} 
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Ubicación */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-blue-600" />
-                  Ubicación
-                </CardTitle>
-                <CardDescription>
-                  Ubicación exacta del campo
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="provincia"
-                    rules={{ required: "La provincia es requerida" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Provincia *</FormLabel>
-                        <Select onValueChange={handleProvinciaChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger disabled={loadingProvincias}>
-                              <SelectValue placeholder={loadingProvincias ? "Cargando provincias..." : "Seleccionar provincia"} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {provincias.map((provincia) => (
-                              <SelectItem key={provincia} value={provincia}>
-                                {provincia}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errorProvincias && (
-                          <p className="text-sm text-red-600">{errorProvincias}</p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="localidad"
-                    rules={{ required: "La localidad es requerida" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Localidad *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('provincia') || loadingLocalidades}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={
-                                !form.watch('provincia') 
-                                  ? "Selecciona una provincia primero" 
-                                  : loadingLocalidades 
-                                    ? "Cargando localidades..." 
-                                    : "Seleccionar localidad"
-                              } />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {localidades.map((localidad) => (
-                              <SelectItem key={localidad} value={localidad}>
-                                {localidad}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errorLocalidades && (
-                          <p className="text-sm text-red-600">{errorLocalidades}</p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                {/* Mapa de Google Maps */}
                 <div className="mt-6">
-                  <GoogleMap 
-                    provincia={form.watch('provincia')} 
-                    localidad={form.watch('localidad')}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                  <TabsContent value="general" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">1. Información General</h3>
+                      <p className="text-sm text-muted-foreground">Datos básicos de la propiedad, ubicación, fotos y contacto</p>
+                    </div>
+                    <InformacionGeneral
+                      formData={formData}
+                      setFormData={setFormData}
+                      tasaciones={tasaciones}
+                      ubicaciones={ubicaciones}
+                      images={images}
+                      setImages={setImages}
+                      onTasacionSelect={handleTasacionSelect}
+                      onImageUpload={handleImageUpload}
+                      onRemoveImage={removeImage}
+                      onTriggerFileInput={triggerFileInput}
+                      fileInputRef={fileInputRef}
+                    />
+                  </TabsContent>
 
-            {/* Características del campo */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Características del campo</CardTitle>
-                <CardDescription>
-                  Información técnica y servicios disponibles
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="cantidad_hectareas"
-                    rules={{ 
-                      required: "Las hectáreas son requeridas",
-                      min: { value: 0.1, message: "Debe ser mayor a 0" }
+                  <TabsContent value="suelo" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">2. Suelo y Recursos Naturales</h3>
+                      <p className="text-sm text-muted-foreground">Calidad del suelo, agua, riego, salinidad y cultivos viables</p>
+                    </div>
+                    <SueloRecursos formData={formData} setFormData={setFormData} />
+                  </TabsContent>
+
+                  <TabsContent value="infraestructura" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">3. Infraestructura e Instalaciones</h3>
+                      <p className="text-sm text-muted-foreground">Instalaciones ganaderas, agrícolas, alambrados e infraestructura hídrica</p>
+                    </div>
+                    <InfraestructuraInstalaciones formData={formData} setFormData={setFormData} />
+                  </TabsContent>
+
+                  <TabsContent value="servicios" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">4. Accesibilidad y Servicios</h3>
+                      <p className="text-sm text-muted-foreground">Conectividad vial, servicios básicos y telecomunicaciones</p>
+                    </div>
+                    <AccesibilidadServicios formData={formData} setFormData={setFormData} />
+                  </TabsContent>
+
+                  <TabsContent value="uso" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">5. Uso Actual y Potencial</h3>
+                      <p className="text-sm text-muted-foreground">Posibilidad de cambios de cultivo e índice de productividad</p>
+                    </div>
+                    <UsoActualPotencial formData={formData} setFormData={setFormData} />
+                  </TabsContent>
+
+                  <TabsContent value="legales" className="space-y-6">
+                    <div className="border-l-4 border-l-primary pl-4">
+                      <h3 className="text-lg font-semibold">6. Factores Legales</h3>
+                      <p className="text-sm text-muted-foreground">Información legal, titularidad, servidumbres y regulaciones</p>
+                    </div>
+                    <FactoresLegales formData={formData} setFormData={setFormData} />
+                  </TabsContent>
+                </div>
+
+                {/* Navigation buttons */}
+                <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const tabs = ['general', 'suelo', 'infraestructura', 'servicios', 'uso', 'legales'];
+                      const currentIndex = tabs.indexOf(activeTab);
+                      if (currentIndex > 0) {
+                        setActiveTab(tabs[currentIndex - 1]);
+                      }
                     }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hectáreas *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.1" 
-                            placeholder="Ej: 150.5" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    disabled={activeTab === 'general'}
+                  >
+                    Anterior
+                  </Button>
+
+                  <div className="flex gap-2">
+                    {activeTab !== 'legales' ? (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const tabs = ['general', 'suelo', 'infraestructura', 'servicios', 'uso', 'legales'];
+                          const currentIndex = tabs.indexOf(activeTab);
+                          if (currentIndex < tabs.length - 1) {
+                            setActiveTab(tabs[currentIndex + 1]);
+                          }
+                        }}
+                      >
+                        Siguiente
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={submitting || !formData.titulo || !formData.cantidad_hectareas || !formData.tipo_campo}
+                      >
+                        {submitting ? 'Publicando...' : (isEditing ? 'Actualizar Campo' : 'Publicar Campo')}
+                      </Button>
                     )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tipo_campo"
-                    rules={{ required: "El tipo de campo es requerido" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de campo *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {tiposCampo.map((tipo) => (
-                              <SelectItem key={tipo.value} value={tipo.value}>
-                                {tipo.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="servicios"
-                  render={() => (
-                    <FormItem>
-                      <FormLabel>Servicios disponibles</FormLabel>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {serviciosOptions.map((servicio) => (
-                          <FormField
-                            key={servicio}
-                            control={form.control}
-                            name="servicios"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={servicio}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(servicio)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, servicio])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== servicio
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="text-sm font-normal capitalize">
-                                    {servicio}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Imágenes */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Imágenes del campo</CardTitle>
-                <CardDescription>
-                  Sube fotos de tu campo (mínimo 1, máximo 10)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center w-full">
-                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                        <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">Click para subir</span> o arrastra las imágenes
-                        </p>
-                        <p className="text-xs text-gray-500">PNG, JPG (MAX. 10 imágenes)</p>
-                      </div>
-                      <input 
-                        id="dropzone-file" 
-                        type="file" 
-                        className="hidden" 
-                        multiple 
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </label>
                   </div>
-                  
-                  {selectedFiles.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {selectedFiles.map((file, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeFile(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                          <p className="text-xs text-gray-600 mt-1 truncate">{file.name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Opciones de publicación */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Opciones de publicación</CardTitle>
-                <CardDescription>
-                  Configura cómo quieres que aparezca tu campo
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="publicar_inmediatamente"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Publicar inmediatamente
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Si marcas esta opción, tu campo será visible inmediatamente en el portal de compras. 
-                          Si no la marcas, se guardará como borrador y podrás publicarlo más tarde.
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Progress bar */}
-            {isSubmitting && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Subiendo imágenes y guardando...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} className="w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/dashboard')}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {form.watch('publicar_inmediatamente') ? 'Publicar Campo' : 'Guardar como Borrador'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              </Tabs>
+            </form>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
-};
-
-export default PublicarCampo; 
+}

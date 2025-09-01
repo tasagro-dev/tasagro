@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Ruler, DollarSign, Eye } from 'lucide-react';
+import { MapPin, Calendar, Ruler, DollarSign, Eye, Camera } from 'lucide-react';
 import { Property } from '@/hooks/useProperties';
 
 interface PropertyCardProps {
@@ -34,12 +34,21 @@ export const PropertyCard = ({ property, onViewMore }: PropertyCardProps) => {
     return `https://minypmsdvdhktkekbeaj.supabase.co/storage/v1/object/public/property-images/${imagePath}`;
   };
 
+  const getMainImage = () => {
+    // Try to get the featured image first, then the first image from the array
+    if (property.imagenes && property.imagenes.length > 0) {
+      const featuredImage = property.imagenes.find(img => img.es_destacada);
+      return featuredImage?.imagen_url || property.imagenes[0]?.imagen_url;
+    }
+    return property.foto_destacada;
+  };
+
   return (
     <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border bg-card">
       {/* Imagen */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <img
-          src={getImageUrl(property.foto_destacada)}
+          src={getImageUrl(getMainImage())}
           alt={property.titulo}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
@@ -51,6 +60,14 @@ export const PropertyCard = ({ property, onViewMore }: PropertyCardProps) => {
             {property.tipo_campo}
           </Badge>
         </div>
+        {property.imagenes && property.imagenes.length > 1 && (
+          <div className="absolute top-3 right-3">
+            <div className="bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Camera className="w-3 h-3" />
+              {property.imagenes.length}
+            </div>
+          </div>
+        )}
         {property.precio && (
           <div className="absolute bottom-3 left-3">
             <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-semibold">

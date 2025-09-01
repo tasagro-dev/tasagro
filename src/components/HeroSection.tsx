@@ -14,7 +14,7 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sección Izquierda - Quiero Comprar */}
       <div 
-        className="flex-1 min-h-screen bg-cover bg-center relative flex items-center justify-center"
+        className="flex-1 min-h-[50vh] md:min-h-screen bg-cover bg-center relative flex items-center justify-center"
         style={{ backgroundImage: `url(${campoVerdeImg})` }}
       >
         {/* Overlay oscuro */}
@@ -34,7 +34,7 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
 
       {/* Sección Derecha - Quiero Tasar/Vender */}
       <div 
-        className="flex-1 min-h-screen bg-cover bg-center relative flex items-center justify-center"
+        className="flex-1 min-h-[50vh] md:min-h-screen bg-cover bg-center relative flex items-center justify-center"
         style={{ backgroundImage: `url(${tabletNegociosImg})` }}
       >
         {/* Overlay oscuro */}
@@ -44,10 +44,14 @@ const HeroSection = ({ onComprarClick }: HeroSectionProps) => {
         <div className="relative z-10 text-center px-6">
           <Button 
             size="lg"
-            className="bg-agro-gradient hover:bg-agro-600 text-white px-12 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
+            className="bg-agro-gradient hover:bg-agro-600 text-white px-8 py-6 text-xl font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
             onClick={() => navigate('/tasar-campo')}
           >
-            QUIERO TASAR/VENDER MI CAMPO
+            <div className="md:hidden flex flex-col">
+              <span>QUIERO TASAR</span>
+              <span>/VENDER MI CAMPO</span>
+            </div>
+            <span className="hidden md:inline">QUIERO TASAR/VENDER MI CAMPO</span>
           </Button>
         </div>
       </div>

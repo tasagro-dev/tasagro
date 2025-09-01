@@ -7,7 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, FileText, Plus, Home } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import PublicarCampoCard from '@/components/PublicarCampoCard';
+import { PublicarCampoCard } from '@/components/PublicarCampoCard';
+import { MisPublicacionesCard } from '@/components/MisPublicacionesCard';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -208,10 +209,12 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-        {/* Card para publicar campo */}
-        <div className="mt-6">
+
+          {/* Publicar Campo */}
           <PublicarCampoCard />
+
+          {/* Mis Publicaciones */}
+          <MisPublicacionesCard />
         </div>
       </main>
     </div>
