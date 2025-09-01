@@ -120,7 +120,7 @@ export default function PublicarCampo() {
     cultivos_viables: [],
     
     // Infraestructura e Instalaciones
-    uso_actual: '',
+    uso_actual: 'sin_uso',
     infraestructura_hidrica: [],
     instalaciones_ganaderia: [],
     instalaciones_agricultura: [],
@@ -131,9 +131,9 @@ export default function PublicarCampo() {
     conectividad_vial: false,
     conectividad_vial_descripcion: '',
     distancia_acopio: '',
-    electricidad: '',
-    agua_potable: '',
-    gas: '',
+    electricidad: 'no_disponible',
+    agua_potable: 'no_disponible',
+    gas: 'no_disponible',
     conectividad_servicios: [],
     
     // Uso Actual y Potencial
@@ -240,13 +240,13 @@ export default function PublicarCampo() {
           sistema_riego: data.sistema_riego || '',
           salinidad_suelo: data.salinidad_suelo || 0,
           rocas_accidentes: data.rocas_accidentes || '',
-          uso_actual: data.uso_actual || '',
+          uso_actual: data.uso_actual || 'sin_uso',
           conectividad_vial: data.conectividad_vial || false,
           conectividad_vial_descripcion: data.conectividad_vial_descripcion || '',
           distancia_acopio: data.distancia_acopio?.toString() || '',
-          electricidad: data.electricidad || '',
-          agua_potable: data.agua_potable || '',
-          gas: data.gas || '',
+          electricidad: data.electricidad || 'no_disponible',
+          agua_potable: data.agua_potable || 'no_disponible',
+          gas: data.gas || 'no_disponible',
           cambio_cultivo: data.cambio_cultivo || false,
           cambio_cultivo_descripcion: data.cambio_cultivo_descripcion || '',
           indice_productividad: data.indice_productividad || 50,
@@ -473,6 +473,44 @@ export default function PublicarCampo() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Validate required fields with default values
+    const validationErrors = [];
+    
+    if (!formData.titulo) validationErrors.push('El título es obligatorio');
+    if (!formData.cantidad_hectareas) validationErrors.push('La cantidad de hectáreas es obligatoria');
+    if (!formData.tipo_campo) validationErrors.push('El tipo de campo es obligatorio');
+    
+    // Ensure uso_actual has a valid value
+    const validUsoActual = ['agricola', 'ganadero', 'mixto', 'forestal', 'sin_uso'];
+    if (!validUsoActual.includes(formData.uso_actual)) {
+      setFormData(prev => ({ ...prev, uso_actual: 'sin_uso' }));
+    }
+    
+    // Ensure service fields have valid values
+    const validServiciosValues = ['trifasica', 'monofasica', 'no_disponible'];
+    if (!validServiciosValues.includes(formData.electricidad)) {
+      setFormData(prev => ({ ...prev, electricidad: 'no_disponible' }));
+    }
+    
+    const validAguaValues = ['red', 'perforacion', 'no_disponible'];
+    if (!validAguaValues.includes(formData.agua_potable)) {
+      setFormData(prev => ({ ...prev, agua_potable: 'no_disponible' }));
+    }
+    
+    const validGasValues = ['red', 'envasado', 'no_disponible'];
+    if (!validGasValues.includes(formData.gas)) {
+      setFormData(prev => ({ ...prev, gas: 'no_disponible' }));
+    }
+    
+    if (validationErrors.length > 0) {
+      toast({
+        title: "Campos requeridos",
+        description: validationErrors.join(', '),
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSubmitting(true);
 
