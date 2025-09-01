@@ -20,9 +20,11 @@ export const useUbicaciones = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ubicaciones', {
-        body: { action: 'list' }
-      });
+      const { data, error } = await supabase
+        .from('ubicaciones')
+        .select('*')
+        .order('provincia', { ascending: true })
+        .order('localidad', { ascending: true });
 
       if (error) throw error;
 
@@ -36,13 +38,16 @@ export const useUbicaciones = () => {
 
   const fetchProvincias = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('ubicaciones', {
-        body: { action: 'provincias' }
-      });
+      const { data, error } = await supabase
+        .from('ubicaciones')
+        .select('provincia')
+        .order('provincia', { ascending: true });
 
       if (error) throw error;
 
-      setProvincias(data || []);
+      // Extraer provincias únicas
+      const provinciasUnicas = [...new Set(data?.map(item => item.provincia) || [])];
+      setProvincias(provinciasUnicas);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar provincias');
     }
@@ -68,5 +73,50 @@ export const useUbicaciones = () => {
     error,
     getLocalidadesByProvincia,
     refetch: fetchUbicaciones
+  };
+};
+
+// Hook separado para localidades de una provincia específica
+export const useLocalidades = (provincia: string) => {
+  const [localidades, setLocalidades] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchLocalidades = async (provinciaSeleccionada: string) => {
+    if (!provinciaSeleccionada) {
+      setLocalidades([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('ubicaciones')
+        .select('localidad')
+        .eq('provincia', provinciaSeleccionada)
+        .order('localidad', { ascending: true });
+
+      if (error) throw error;
+
+      const localidadesUnicas = data?.map(item => item.localidad) || [];
+      setLocalidades(localidadesUnicas);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar localidades');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLocalidades(provincia);
+  }, [provincia]);
+
+  return {
+    localidades,
+    loading,
+    error,
+    refetch: () => fetchLocalidades(provincia)
   };
 };

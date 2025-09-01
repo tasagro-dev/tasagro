@@ -59,6 +59,7 @@ const NuevaTasacion = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdTasacionId, setCreatedTasacionId] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -127,7 +128,7 @@ const NuevaTasacion = () => {
       const valorEstimado = calcularValorEstimado(data);
 
       // Save to database
-      const { error } = await supabase
+      const { data: tasacionData, error } = await supabase
         .from('tasaciones')
         .insert({
           user_id: user.id,
@@ -144,11 +145,16 @@ const NuevaTasacion = () => {
           servicios: data.servicios,
           imagenes: imageUrls,
           valor_estimado: valorEstimado
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         throw error;
       }
+
+      // Save the created tasacion ID
+      setCreatedTasacionId(tasacionData.id);
 
       // Show success modal instead of toast
       setShowSuccessModal(true);
@@ -601,10 +607,19 @@ const NuevaTasacion = () => {
               Ya podés descargar el informe desde la sección Mis Tasaciones.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center mt-6">
+          <div className="flex flex-col gap-3 mt-6">
             <Button onClick={handleSuccessModalClose} className="w-full">
               Ir a Mis Tasaciones
             </Button>
+            {createdTasacionId && (
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/publicar-campo?tasacion_id=${createdTasacionId}`)}
+                className="w-full"
+              >
+                Publicar en el Portal
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

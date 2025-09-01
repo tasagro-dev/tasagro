@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Download, MapPin, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
+import { LogOut, Download, MapPin, Calendar, DollarSign, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import jsPDF from 'jspdf';
@@ -355,13 +355,21 @@ const MisTasaciones = () => {
                       </span>
                     </div>
                     
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t space-y-2">
                       <Button 
                         className="w-full" 
                         onClick={() => generatePDF(tasacion)}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Descargar PDF
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="w-full" 
+                        onClick={() => navigate(`/publicar-campo?tasacion_id=${tasacion.id}`)}
+                      >
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Publicar en el Portal
                       </Button>
                     </div>
                   </div>
