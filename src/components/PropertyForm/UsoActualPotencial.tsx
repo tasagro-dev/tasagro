@@ -45,6 +45,11 @@ export function UsoActualPotencial({ formData, setFormData }: UsoActualPotencial
               id="cambio_cultivo_descripcion"
               value={formData.cambio_cultivo_descripcion}
               onChange={(e) => setFormData(prev => ({ ...prev, cambio_cultivo_descripcion: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Describe qué cambios de cultivo o actividad son posibles..."
               rows={4}
             />
