@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,13 +40,13 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-gray-700 hover:text-primary transition-colors duration-200">
+            <Link to="/" className="text-gray-700 hover:text-agro-600 transition-colors duration-200">
               Inicio
-            </a>
-            <a href="#" className="text-gray-700 hover:text-primary transition-colors duration-200">
+            </Link>
+            <a href="#servicios" className="text-gray-700 hover:text-agro-600 transition-colors duration-200">
               Servicios
             </a>
-            <a href="#" className="text-gray-700 hover:text-primary transition-colors duration-200">
+            <a href="#contacto" className="text-gray-700 hover:text-agro-600 transition-colors duration-200">
               Contacto
             </a>
           </nav>
@@ -78,21 +78,24 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 bg-white">
             <div className="px-2 pt-2 pb-3 space-y-1 animate-fade-in">
-              <a
-                href="#"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md transition-colors duration-200"
+              <Link
+                to="/"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-agro-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Inicio
-              </a>
+              </Link>
               <a
-                href="#"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md transition-colors duration-200"
+                href="#servicios"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-agro-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Servicios
               </a>
               <a
-                href="#"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md transition-colors duration-200"
+                href="#contacto"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-agro-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Contacto
               </a>
