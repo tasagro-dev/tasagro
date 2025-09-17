@@ -359,7 +359,7 @@ const TasarCampo = () => {
             <Button 
               variant="outline" 
               size="lg"
-              className="border-2 border-white text-white hover:bg-white hover:text-agro-600 px-10 py-6 text-xl rounded-2xl hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+              className="border-2 border-white text-agro-600 bg-white hover:bg-gray-100 px-10 py-6 text-xl rounded-2xl hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               onClick={handleComprarClick}
             >
               Ver Campos en Venta
