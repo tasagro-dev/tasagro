@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, CheckCircle } from 'lucide-react';
+import { Loader2, Upload, CheckCircle, TrendingUp } from 'lucide-react';
+import { ComparablesModal } from '@/components/ComparablesModal';
 
 type FormData = {
   nombre_propiedad?: string;
@@ -60,6 +61,12 @@ const NuevaTasacion = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTasacionId, setCreatedTasacionId] = useState<string | null>(null);
+  
+  // Comparables modal state
+  const [showComparablesModal, setShowComparablesModal] = useState(false);
+  const [comparablesData, setComparablesData] = useState(null);
+  const [loadingComparables, setLoadingComparables] = useState(false);
+  const [estimatedValue, setEstimatedValue] = useState<number | null>(null);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -116,6 +123,59 @@ const NuevaTasacion = () => {
     return urls.filter(url => url !== null) as string[];
   };
 
+  const searchComparables = async () => {
+    const provincia = form.getValues('provincia');
+    const localidad = form.getValues('localidad');
+    const hectareas = form.getValues('hectareas');
+    const tipo_campo = form.getValues('tipo_campo');
+
+    if (!provincia || !localidad || !hectareas || !tipo_campo) {
+      toast({
+        title: "Campos requeridos",
+        description: "Complete provincia, localidad, hectáreas y tipo de campo antes de buscar comparables.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingComparables(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mercadolibre-comparables', {
+        body: {
+          provincia,
+          localidad,
+          hectareas,
+          tipo_campo,
+          radioKm: 50
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setComparablesData(data);
+      setShowComparablesModal(true);
+    } catch (error) {
+      console.error('Error searching comparables:', error);
+      toast({
+        title: "Error en búsqueda",
+        description: "No se pudieron obtener comparables de MercadoLibre. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingComparables(false);
+    }
+  };
+
+  const handleUseEstimate = (value: number) => {
+    setEstimatedValue(value);
+    toast({
+      title: "Valor estimado actualizado",
+      description: `Se estableció el valor en $${value.toLocaleString('es-AR')} basado en comparables de MercadoLibre.`,
+    });
+  };
+
   const onSubmit = async (data: FormData) => {
     if (!user) return;
 
@@ -124,8 +184,8 @@ const NuevaTasacion = () => {
       // Upload images first
       const imageUrls = await uploadImages();
       
-      // Calculate estimated value
-      const valorEstimado = calcularValorEstimado(data);
+      // Use comparative estimate if available, otherwise calculate basic estimate  
+      const valorEstimado = estimatedValue || calcularValorEstimado(data);
 
       // Save to database
       const { data: tasacionData, error } = await supabase
@@ -337,6 +397,37 @@ const NuevaTasacion = () => {
                       </FormItem>
                     )}
                   />
+
+                  {/* Comparative Search Button */}
+                  <div className="flex flex-col space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Tasación Comparativa
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={searchComparables}
+                      disabled={loadingComparables}
+                      className="w-full border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                    >
+                      {loadingComparables ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          Buscar Comparables en MercadoLibre
+                        </>
+                      )}
+                    </Button>
+                    {estimatedValue && (
+                      <div className="text-sm text-green-600 font-medium">
+                        ✓ Valor estimado: ${estimatedValue.toLocaleString('es-AR')}
+                      </div>
+                    )}
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -623,6 +714,15 @@ const NuevaTasacion = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Comparables Modal */}
+      <ComparablesModal
+        isOpen={showComparablesModal}
+        onClose={() => setShowComparablesModal(false)}
+        data={comparablesData}
+        onUseEstimate={handleUseEstimate}
+        loading={loadingComparables}
+      />
     </div>
   );
 };

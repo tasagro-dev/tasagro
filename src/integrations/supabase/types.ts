@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      comparables_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          query_hash: string
+          results: Json
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          query_hash: string
+          results: Json
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          query_hash?: string
+          results?: Json
+        }
+        Relationships: []
+      }
       conectividad: {
         Row: {
           activo: boolean | null
