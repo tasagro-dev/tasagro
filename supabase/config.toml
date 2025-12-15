@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.upload-image]
 verify_jwt = false
+
+[functions.mercadolibre-comparables]
+verify_jwt = false

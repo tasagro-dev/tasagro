@@ -7,6 +7,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Códigos de provincias de MercadoLibre Argentina
+const PROVINCE_CODES: Record<string, string> = {
+  'buenos aires': 'TUxBUEJVRU5PUw',
+  'capital federal': 'TUxBUENBUGw3M2E1',
+  'catamarca': 'TUxBUENBVGFiY2Fm',
+  'chaco': 'TUxBUENIQWFkZGUw',
+  'chubut': 'TUxBUENIVXh4Mzc2',
+  'cordoba': 'TUxBUENPUmFkZGIw',
+  'córdoba': 'TUxBUENPUmFkZGIw',
+  'corrientes': 'TUxBUENPUnMzOTRk',
+  'entre rios': 'TUxBUEVOVHMzNTZi',
+  'entre ríos': 'TUxBUEVOVHMzNTZi',
+  'formosa': 'TUxBUEZPUnMxNzc4',
+  'jujuy': 'TUxBUEpVSnk2ODA3',
+  'la pampa': 'TUxBUExBUHMxNDM1MQ',
+  'la rioja': 'TUxBUExBUmk3MDQ5',
+  'mendoza': 'TUxBUE1FTnM0ZTdj',
+  'misiones': 'TUxBUE1JU3MzNjIx',
+  'neuquen': 'TUxBUE5FVW4xMzMzNQ',
+  'neuquén': 'TUxBUE5FVW4xMzMzNQ',
+  'rio negro': 'TUxBUFJJT24xMzEyOQ',
+  'río negro': 'TUxBUFJJT24xMzEyOQ',
+  'salta': 'TUxBUFNBTGE1ZmVj',
+  'san juan': 'TUxBUFNBTno3Nzk0',
+  'san luis': 'TUxBUFNBTno3Nzk1',
+  'santa cruz': 'TUxBUFNBTno3Nzk2',
+  'santa fe': 'TUxBUFNBTmU5Nzk2',
+  'santiago del estero': 'TUxBUFNBTno3Nzk3',
+  'tierra del fuego': 'TUxBUFRJRXM0YjEy',
+  'tucuman': 'TUxBUFRVQ24xNDkw',
+  'tucumán': 'TUxBUFRVQ24xNDkw',
+};
+
 interface SearchParams {
   provincia: string;
   localidad: string;
@@ -14,6 +47,26 @@ interface SearchParams {
   tipo_campo: string;
   radioKm?: number;
   page?: number;
+  mejoras?: string[];
+}
+
+interface RuralData {
+  tipo_campo: string;
+  aptitud_suelo: string[];
+  mejoras: {
+    casa: boolean;
+    galpon: boolean;
+    silos: boolean;
+    aguadas: boolean;
+    molinos: boolean;
+    alambrados: boolean;
+    corrales: boolean;
+    manga: boolean;
+  };
+  cultivos_actuales: string[];
+  pasturas: string[];
+  infraestructura: string[];
+  confidence: number;
 }
 
 interface Comparable {
@@ -29,6 +82,9 @@ interface Comparable {
   location: string;
   score: number;
   raw: any;
+  // Nuevos campos de extracción IA
+  rural_data?: RuralData;
+  ai_extracted: boolean;
 }
 
 interface SearchResponse {
@@ -48,8 +104,10 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
 function generateQueryHash(params: SearchParams): string {
-  const hashInput = `${params.provincia}_${params.localidad}_${params.hectareas}_${params.tipo_campo}_${params.radioKm || 50}`;
+  const hashInput = `${params.provincia}_${params.localidad}_${params.hectareas}_${params.tipo_campo}_${params.radioKm || 50}_v2`;
   return btoa(hashInput).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 }
 
@@ -78,7 +136,7 @@ async function getFromCache(queryHash: string): Promise<SearchResponse | null> {
 async function saveToCache(queryHash: string, results: SearchResponse): Promise<void> {
   try {
     const expiryTime = new Date();
-    expiryTime.setHours(expiryTime.getHours() + 1); // 1 hour cache
+    expiryTime.setHours(expiryTime.getHours() + 2); // 2 hour cache
 
     const { error } = await supabase
       .from('comparables_cache')
@@ -101,7 +159,6 @@ async function saveToCache(queryHash: string, results: SearchResponse): Promise<
 function parseArea(text: string): number | null {
   if (!text) return null;
   
-  // Remove common noise words and normalize
   const cleanText = text.toLowerCase()
     .replace(/[,\.]/g, '')
     .replace(/\s+/g, ' ')
@@ -123,52 +180,223 @@ function parseArea(text: string): number | null {
   // Look for m² patterns and convert to hectares
   const m2Patterns = [
     /(\d+(?:\.\d+)?)\s*(?:m2|m²|metros?\s*cuadrados?)/,
-    /(\d+(?:\.\d+)?)\s*(?:metros?\s*cuadrados?)/,
   ];
 
   for (const pattern of m2Patterns) {
     const match = cleanText.match(pattern);
     if (match) {
       const m2 = parseFloat(match[1]);
-      return m2 / 10000; // Convert m² to hectares
+      return m2 / 10000;
     }
   }
 
   return null;
 }
 
+// Extraer área de atributos estructurados de MercadoLibre
+function parseAreaFromAttributes(item: any): number | null {
+  const totalArea = item.attributes?.find((a: any) => a.id === 'TOTAL_AREA');
+  if (totalArea?.value_name) {
+    const m2 = parseFloat(totalArea.value_name.replace(/[^0-9.]/g, ''));
+    if (m2 > 0) return m2 / 10000; // Convertir a hectáreas
+  }
+  return parseArea(item.title);
+}
+
 function parsePrice(item: any): number | null {
   if (!item.price || item.price <= 0) return null;
-  
-  // MercadoLibre API returns price as number
   return item.price;
+}
+
+// Obtener descripción completa de un item
+async function getItemDescription(itemId: string): Promise<string> {
+  try {
+    const response = await fetch(`https://api.mercadolibre.com/items/${itemId}/description`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.plain_text || '';
+    }
+  } catch (error) {
+    console.error(`Error fetching description for ${itemId}:`, error);
+  }
+  return '';
+}
+
+// Extracción de datos rurales con OpenAI
+async function extractRuralData(title: string, description: string): Promise<RuralData | null> {
+  if (!openAIApiKey) {
+    console.log('OpenAI API key not configured, using fallback extraction');
+    return extractRuralDataFallback(title, description);
+  }
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        max_tokens: 500,
+        temperature: 0.1,
+        messages: [
+          {
+            role: 'system',
+            content: `Eres un experto en tasación de campos rurales en Argentina. Extrae datos estructurados de esta publicación.
+
+Responde SOLO con JSON válido con este schema exacto:
+{
+  "tipo_campo": "agricola" | "ganadero" | "mixto" | "forestal" | "tambo" | "criadero" | "desconocido",
+  "aptitud_suelo": ["agricola", "ganadero", etc.],
+  "mejoras": {
+    "casa": boolean,
+    "galpon": boolean,
+    "silos": boolean,
+    "aguadas": boolean,
+    "molinos": boolean,
+    "alambrados": boolean,
+    "corrales": boolean,
+    "manga": boolean
+  },
+  "cultivos_actuales": ["soja", "maiz", "trigo", etc.],
+  "pasturas": ["naturales", "implantadas", etc.],
+  "infraestructura": ["electricidad", "gas", "camino", etc.],
+  "confidence": 0.0 a 1.0
+}
+
+Responde siempre con todos los campos. Si no puedes determinar algo, usa valores por defecto (arrays vacíos, false, "desconocido", o confidence bajo).`
+          },
+          {
+            role: 'user',
+            content: `Título: ${title}\n\nDescripción: ${description.substring(0, 2000)}`
+          }
+        ]
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error:', response.status);
+      return extractRuralDataFallback(title, description);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (content) {
+      const parsed = JSON.parse(content) as RuralData;
+      console.log('AI extraction successful, confidence:', parsed.confidence);
+      return parsed;
+    }
+  } catch (error) {
+    console.error('Error in AI extraction:', error);
+  }
+
+  return extractRuralDataFallback(title, description);
+}
+
+// Fallback con regex si OpenAI falla
+function extractRuralDataFallback(title: string, description: string): RuralData {
+  const text = `${title} ${description}`.toLowerCase();
+  
+  // Detectar tipo de campo
+  let tipo_campo = 'desconocido';
+  if (/agr[ií]cola|agricultura|siembra|cultivo/.test(text)) tipo_campo = 'agricola';
+  else if (/ganader[iao]|hacienda|vacun/.test(text)) tipo_campo = 'ganadero';
+  else if (/mixto|agro.?ganadero/.test(text)) tipo_campo = 'mixto';
+  else if (/forestal|bosque|monte/.test(text)) tipo_campo = 'forestal';
+  else if (/tambo|lecher[iao]/.test(text)) tipo_campo = 'tambo';
+  
+  // Detectar mejoras
+  const mejoras = {
+    casa: /casa|vivienda|casero/.test(text),
+    galpon: /galp[oó]n|dep[oó]sito|tinglado/.test(text),
+    silos: /silo|almacen/.test(text),
+    aguadas: /aguada|tanque|bebedero|pozo/.test(text),
+    molinos: /molino/.test(text),
+    alambrados: /alambrado|cerco|perimetral/.test(text),
+    corrales: /corral/.test(text),
+    manga: /manga|embarcadero/.test(text),
+  };
+
+  // Detectar cultivos
+  const cultivos_actuales: string[] = [];
+  if (/soja/.test(text)) cultivos_actuales.push('soja');
+  if (/ma[ií]z/.test(text)) cultivos_actuales.push('maíz');
+  if (/trigo/.test(text)) cultivos_actuales.push('trigo');
+  if (/girasol/.test(text)) cultivos_actuales.push('girasol');
+  if (/sorgo/.test(text)) cultivos_actuales.push('sorgo');
+
+  // Detectar pasturas
+  const pasturas: string[] = [];
+  if (/pastura\s*natural|campo\s*natural/.test(text)) pasturas.push('naturales');
+  if (/pastura\s*implantada|pradera/.test(text)) pasturas.push('implantadas');
+
+  // Detectar infraestructura
+  const infraestructura: string[] = [];
+  if (/luz|electricidad|energ[ií]a/.test(text)) infraestructura.push('electricidad');
+  if (/gas/.test(text)) infraestructura.push('gas');
+  if (/ruta|camino|asfalto/.test(text)) infraestructura.push('camino');
+
+  return {
+    tipo_campo,
+    aptitud_suelo: tipo_campo !== 'desconocido' ? [tipo_campo] : [],
+    mejoras,
+    cultivos_actuales,
+    pasturas,
+    infraestructura,
+    confidence: 0.4, // Confianza baja para fallback
+  };
 }
 
 function calculateScore(comparable: Comparable, searchParams: SearchParams): number {
   let score = 0;
   
-  // Area similarity (25%)
+  // Area similarity (20%)
   const areaDiff = Math.abs(comparable.area_ha - searchParams.hectareas) / searchParams.hectareas;
   const areaScore = Math.max(0, 1 - areaDiff);
-  score += areaScore * 0.25;
+  score += areaScore * 0.20;
   
-  // Location similarity (40%) - simplified
-  const locationScore = comparable.location.toLowerCase().includes(searchParams.localidad.toLowerCase()) ? 1 : 0.3;
-  score += locationScore * 0.4;
+  // Location similarity (30%)
+  const locationLower = comparable.location.toLowerCase();
+  const localidadLower = searchParams.localidad.toLowerCase();
+  const provinciaLower = searchParams.provincia.toLowerCase();
   
-  // Type similarity (15%) - basic text matching
-  const typeScore = comparable.title.toLowerCase().includes(searchParams.tipo_campo.toLowerCase()) ? 1 : 0.5;
-  score += typeScore * 0.15;
+  let locationScore = 0.3; // base
+  if (locationLower.includes(localidadLower)) locationScore = 1;
+  else if (locationLower.includes(provinciaLower)) locationScore = 0.6;
+  score += locationScore * 0.30;
   
-  // Data quality (10%)
-  let qualityScore = 0.5; // base score
-  if (comparable.thumbnail) qualityScore += 0.2;
-  if (comparable.lat && comparable.lng) qualityScore += 0.2;
-  if (comparable.price > 0 && comparable.area_ha > 0) qualityScore += 0.1;
-  score += Math.min(qualityScore, 1) * 0.1;
+  // Tipo de campo similarity (20%) - usando datos IA
+  let tipoScore = 0.5;
+  if (comparable.rural_data) {
+    const tipoBuscado = searchParams.tipo_campo.toLowerCase();
+    const tipoEncontrado = comparable.rural_data.tipo_campo.toLowerCase();
+    
+    if (tipoEncontrado === tipoBuscado) tipoScore = 1;
+    else if (tipoEncontrado === 'mixto' || tipoBuscado === 'mixto') tipoScore = 0.7;
+    else if (tipoEncontrado !== 'desconocido') tipoScore = 0.4;
+  }
+  score += tipoScore * 0.20;
   
-  // Freshness (10%) - assume recent for now
-  score += 0.8 * 0.1;
+  // Mejoras similarity (15%)
+  let mejorasScore = 0.5;
+  if (comparable.rural_data && searchParams.mejoras && searchParams.mejoras.length > 0) {
+    const mejorasEncontradas = Object.entries(comparable.rural_data.mejoras)
+      .filter(([_, v]) => v)
+      .map(([k, _]) => k);
+    
+    const matches = searchParams.mejoras.filter(m => 
+      mejorasEncontradas.some(e => e.includes(m.toLowerCase()) || m.toLowerCase().includes(e))
+    );
+    mejorasScore = matches.length / searchParams.mejoras.length;
+  }
+  score += mejorasScore * 0.15;
+  
+  // AI confidence score (15%)
+  const confidenceScore = comparable.rural_data?.confidence || 0.3;
+  score += confidenceScore * 0.15;
   
   return Math.min(score, 1);
 }
@@ -176,7 +404,9 @@ function calculateScore(comparable: Comparable, searchParams: SearchParams): num
 async function geocodeLocation(location: string): Promise<{lat: number, lng: number} | null> {
   try {
     const query = encodeURIComponent(location + ', Argentina');
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
+      headers: { 'User-Agent': 'Tasagro-Comparables/1.0' }
+    });
     const data = await response.json();
     
     if (data && data.length > 0) {
@@ -191,20 +421,44 @@ async function geocodeLocation(location: string): Promise<{lat: number, lng: num
   return null;
 }
 
-async function searchMercadoLibreWithRetry(query: string, offset: number = 0): Promise<any> {
+function buildSearchUrl(params: SearchParams): string {
+  const baseUrl = 'https://api.mercadolibre.com/sites/MLA/search';
+  
+  // Usar categoría correcta MLA1496 (Campos)
+  let url = `${baseUrl}?category=MLA1496`;
+  
+  // Query de texto
+  const queryParts = ['campo'];
+  if (params.tipo_campo) queryParts.push(params.tipo_campo);
+  if (params.localidad) queryParts.push(params.localidad);
+  url += `&q=${encodeURIComponent(queryParts.join(' '))}`;
+  
+  // Filtro de provincia
+  const provinceCode = PROVINCE_CODES[params.provincia.toLowerCase()];
+  if (provinceCode) {
+    url += `&state=${provinceCode}`;
+  }
+  
+  // Filtro de área (±40% del objetivo en m²)
+  const minM2 = Math.floor(params.hectareas * 0.6 * 10000);
+  const maxM2 = Math.ceil(params.hectareas * 1.4 * 10000);
+  url += `&TOTAL_AREA=${minM2}-${maxM2}`;
+  
+  url += '&limit=50&offset=0';
+  
+  return url;
+}
+
+async function searchMercadoLibreWithRetry(url: string): Promise<any> {
   const maxRetries = 3;
   let lastError;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempt ${attempt} - Searching MercadoLibre with query: ${query}`);
-      
-      const url = `https://api.mercadolibre.com/sites/MLA/search?q=${encodeURIComponent(query)}&category=MLA1459&limit=50&offset=${offset}`;
+      console.log(`Attempt ${attempt} - Searching MercadoLibre: ${url}`);
       
       const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Tasagro-Comparables/1.0'
-        }
+        headers: { 'User-Agent': 'Tasagro-Comparables/1.0' }
       });
 
       if (!response.ok) {
@@ -220,7 +474,7 @@ async function searchMercadoLibreWithRetry(query: string, offset: number = 0): P
       lastError = error;
       
       if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+        const delay = Math.pow(2, attempt) * 1000;
         console.log(`Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -233,39 +487,54 @@ async function searchMercadoLibreWithRetry(query: string, offset: number = 0): P
 async function searchComparables(params: SearchParams): Promise<SearchResponse> {
   const startTime = Date.now();
   
-  // Build search query
-  const query = `campo ${params.tipo_campo} ${params.hectareas} hectareas ${params.provincia} ${params.localidad}`;
+  // Construir URL con filtros optimizados
+  const searchUrl = buildSearchUrl(params);
   
   try {
-    const mlResponse = await searchMercadoLibreWithRetry(query);
+    const mlResponse = await searchMercadoLibreWithRetry(searchUrl);
     
     if (!mlResponse.results || mlResponse.results.length === 0) {
-      return {
-        comparables: [],
-        total_found: 0,
-        estimated_price_per_ha: 0,
-        estimated_price_total: 0,
-        min_price: 0,
-        max_price: 0,
-        median_price: 0,
-        confidence_score: 0,
-        from_cache: false
-      };
+      console.log('No results from primary search, trying broader search...');
+      
+      // Búsqueda más amplia sin filtro de área
+      const broaderUrl = `https://api.mercadolibre.com/sites/MLA/search?category=MLA1496&q=${encodeURIComponent(`campo ${params.tipo_campo} ${params.provincia}`)}&limit=50`;
+      const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl);
+      
+      if (!broaderResponse.results || broaderResponse.results.length === 0) {
+        return {
+          comparables: [],
+          total_found: 0,
+          estimated_price_per_ha: 0,
+          estimated_price_total: 0,
+          min_price: 0,
+          max_price: 0,
+          median_price: 0,
+          confidence_score: 0,
+          from_cache: false
+        };
+      }
+      
+      mlResponse.results = broaderResponse.results;
     }
 
     const comparables: Comparable[] = [];
-
-    for (const item of mlResponse.results) {
+    
+    // Procesar items en batches para obtener descripciones
+    const itemsToProcess = mlResponse.results.slice(0, 25); // Limitar a 25 para performance
+    
+    console.log(`Processing ${itemsToProcess.length} items with AI extraction...`);
+    
+    for (const item of itemsToProcess) {
       const price = parsePrice(item);
-      const area_ha = parseArea(item.title);
+      const area_ha = parseAreaFromAttributes(item);
       
       if (!price || !area_ha || area_ha <= 0) {
-        continue; // Skip items without valid price or area
+        continue;
       }
 
       const price_per_ha = price / area_ha;
       
-      // Basic location extraction
+      // Location extraction
       const location = item.location ? 
         `${item.location.city?.name || ''}, ${item.location.state?.name || ''}`.trim().replace(/^,\s*/, '') : 
         params.localidad;
@@ -274,14 +543,11 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
       if (item.location?.latitude && item.location?.longitude) {
         lat = item.location.latitude;
         lng = item.location.longitude;
-      } else {
-        // Try geocoding as fallback
-        const coords = await geocodeLocation(location);
-        if (coords) {
-          lat = coords.lat;
-          lng = coords.lng;
-        }
       }
+
+      // Obtener descripción y extraer datos rurales con IA
+      const description = await getItemDescription(item.id);
+      const rural_data = await extractRuralData(item.title, description);
 
       const comparable: Comparable = {
         id: item.id,
@@ -294,8 +560,10 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
         lat: lat,
         lng: lng,
         location: location,
-        score: 0, // Will be calculated next
-        raw: item
+        score: 0,
+        raw: item,
+        rural_data: rural_data || undefined,
+        ai_extracted: !!rural_data && rural_data.confidence > 0.5,
       };
 
       comparable.score = calculateScore(comparable, params);
@@ -305,8 +573,8 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
     // Sort by score descending
     comparables.sort((a, b) => b.score - a.score);
 
-    // Take top 20 results
-    const topComparables = comparables.slice(0, 20);
+    // Take top 15 results
+    const topComparables = comparables.slice(0, 15);
 
     if (topComparables.length === 0) {
       return {
@@ -337,10 +605,11 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
     const estimated_price_per_ha = pricesPerHa.reduce((sum, price) => sum + price, 0) / pricesPerHa.length;
     const estimated_price_total = estimated_price_per_ha * params.hectareas;
     
-    // Calculate confidence score based on number of comparables and average score
+    // Calculate confidence score
     const avgScore = topComparables.reduce((sum, c) => sum + c.score, 0) / topComparables.length;
-    const quantityFactor = Math.min(topComparables.length / 10, 1); // Max confidence at 10+ comparables
-    const confidence_score = (avgScore * 0.7) + (quantityFactor * 0.3);
+    const avgAiConfidence = topComparables.reduce((sum, c) => sum + (c.rural_data?.confidence || 0.3), 0) / topComparables.length;
+    const quantityFactor = Math.min(topComparables.length / 10, 1);
+    const confidence_score = (avgScore * 0.5) + (avgAiConfidence * 0.3) + (quantityFactor * 0.2);
 
     const response: SearchResponse = {
       comparables: topComparables,
@@ -355,7 +624,7 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
     };
 
     const endTime = Date.now();
-    console.log(`Search completed in ${endTime - startTime}ms. Found ${topComparables.length} valid comparables.`);
+    console.log(`Search completed in ${endTime - startTime}ms. Found ${topComparables.length} valid comparables with AI extraction.`);
 
     return response;
 
@@ -366,13 +635,12 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { provincia, localidad, hectareas, tipo_campo, radioKm = 50, page = 1 }: SearchParams = await req.json();
+    const { provincia, localidad, hectareas, tipo_campo, radioKm = 50, page = 1, mejoras }: SearchParams = await req.json();
 
     // Validate required parameters
     if (!provincia || !localidad || !hectareas || !tipo_campo) {
@@ -393,14 +661,13 @@ serve(async (req) => {
       });
     }
 
-    const searchParams: SearchParams = { provincia, localidad, hectareas, tipo_campo, radioKm, page };
+    const searchParams: SearchParams = { provincia, localidad, hectareas, tipo_campo, radioKm, page, mejoras };
     const queryHash = generateQueryHash(searchParams);
 
     // Try to get from cache first
     let result = await getFromCache(queryHash);
     
     if (!result) {
-      // Search MercadoLibre and cache results
       result = await searchComparables(searchParams);
       await saveToCache(queryHash, result);
     }
