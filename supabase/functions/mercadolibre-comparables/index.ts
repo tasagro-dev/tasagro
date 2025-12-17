@@ -167,10 +167,18 @@ async function getMercadoLibreToken(): Promise<string | null> {
   }
 }
 
-// Helper to make authenticated requests to MercadoLibre
-async function fetchMercadoLibre(url: string, token: string | null): Promise<Response> {
+// Helper for public API requests (search endpoints)
+async function fetchMercadoLibrePublic(url: string): Promise<Response> {
+  return fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+}
+
+// Helper for authenticated requests (item details, descriptions)
+async function fetchMercadoLibreAuth(url: string, token: string | null): Promise<Response> {
   const headers: Record<string, string> = {
-    'User-Agent': 'Tasagro-Comparables/1.0',
     'Accept': 'application/json',
   };
   
@@ -282,13 +290,24 @@ function parsePrice(item: any): number | null {
 
 async function getItemDescription(itemId: string, token: string | null): Promise<string> {
   try {
-    const response = await fetchMercadoLibre(
-      `https://api.mercadolibre.com/items/${itemId}/description`,
-      token
+    // Item descriptions are public, try without auth first
+    const response = await fetchMercadoLibrePublic(
+      `https://api.mercadolibre.com/items/${itemId}/description`
     );
     if (response.ok) {
       const data = await response.json();
       return data.plain_text || '';
+    }
+    // If public fails and we have token, try authenticated
+    if (token) {
+      const authResponse = await fetchMercadoLibreAuth(
+        `https://api.mercadolibre.com/items/${itemId}/description`,
+        token
+      );
+      if (authResponse.ok) {
+        const data = await authResponse.json();
+        return data.plain_text || '';
+      }
     }
   } catch (error) {
     console.error(`Error fetching description for ${itemId}:`, error);
@@ -487,15 +506,17 @@ function buildSearchUrl(params: SearchParams): string {
   return url;
 }
 
-async function searchMercadoLibreWithRetry(url: string, token: string | null): Promise<any> {
+// Search endpoint is PUBLIC - no auth needed
+async function searchMercadoLibreWithRetry(url: string): Promise<any> {
   const maxRetries = 3;
   let lastError;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempt ${attempt} - Searching MercadoLibre: ${url}`);
+      console.log(`Attempt ${attempt} - Searching MercadoLibre (public API): ${url}`);
       
-      const response = await fetchMercadoLibre(url, token);
+      // Use public API for search - no authentication
+      const response = await fetchMercadoLibrePublic(url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -525,24 +546,23 @@ async function searchMercadoLibreWithRetry(url: string, token: string | null): P
 async function searchComparables(params: SearchParams): Promise<SearchResponse> {
   const startTime = Date.now();
   
-  // Get OAuth token
+  // Get OAuth token for item descriptions (optional, descriptions are also public)
   const token = await getMercadoLibreToken();
   if (token) {
-    console.log('Using authenticated MercadoLibre API');
-  } else {
-    console.log('Using public MercadoLibre API (may be rate limited)');
+    console.log('OAuth token available for item details');
   }
   
   const searchUrl = buildSearchUrl(params);
   
   try {
-    const mlResponse = await searchMercadoLibreWithRetry(searchUrl, token);
+    // Search uses PUBLIC API - no auth
+    const mlResponse = await searchMercadoLibreWithRetry(searchUrl);
     
     if (!mlResponse.results || mlResponse.results.length === 0) {
       console.log('No results from primary search, trying broader search...');
       
       const broaderUrl = `https://api.mercadolibre.com/sites/MLA/search?category=MLA1496&q=${encodeURIComponent(`campo ${params.tipo_campo} ${params.provincia}`)}&limit=50`;
-      const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl, token);
+      const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl);
       
       if (!broaderResponse.results || broaderResponse.results.length === 0) {
         return {
