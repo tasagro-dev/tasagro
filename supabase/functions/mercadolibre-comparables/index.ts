@@ -82,7 +82,6 @@ interface Comparable {
   location: string;
   score: number;
   raw: any;
-  // Nuevos campos de extracción IA
   rural_data?: RuralData;
   ai_extracted: boolean;
 }
@@ -106,8 +105,84 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// MercadoLibre OAuth credentials
+const mlAppId = Deno.env.get('MERCADOLIBRE_APP_ID');
+const mlSecretKey = Deno.env.get('MERCADOLIBRE_SECRET_KEY');
+
+// In-memory token cache (valid for ~5.5 hours to be safe, ML tokens last 6 hours)
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+// Get OAuth token using Client Credentials flow
+async function getMercadoLibreToken(): Promise<string | null> {
+  // Check if we have a valid cached token
+  if (cachedToken && Date.now() < cachedToken.expiresAt) {
+    console.log('Using cached MercadoLibre token');
+    return cachedToken.token;
+  }
+
+  if (!mlAppId || !mlSecretKey) {
+    console.log('MercadoLibre credentials not configured, using public API');
+    return null;
+  }
+
+  try {
+    console.log('Requesting new MercadoLibre OAuth token...');
+    
+    const response = await fetch('https://api.mercadolibre.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: mlAppId,
+        client_secret: mlSecretKey,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OAuth token error:', response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.access_token) {
+      // Cache token for 5.5 hours (tokens are valid for 6 hours)
+      cachedToken = {
+        token: data.access_token,
+        expiresAt: Date.now() + (5.5 * 60 * 60 * 1000),
+      };
+      console.log('MercadoLibre OAuth token obtained successfully');
+      return data.access_token;
+    }
+    
+    console.error('No access_token in OAuth response:', data);
+    return null;
+  } catch (error) {
+    console.error('Error getting MercadoLibre token:', error);
+    return null;
+  }
+}
+
+// Helper to make authenticated requests to MercadoLibre
+async function fetchMercadoLibre(url: string, token: string | null): Promise<Response> {
+  const headers: Record<string, string> = {
+    'User-Agent': 'Tasagro-Comparables/1.0',
+    'Accept': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, { headers });
+}
+
 function generateQueryHash(params: SearchParams): string {
-  const hashInput = `${params.provincia}_${params.localidad}_${params.hectareas}_${params.tipo_campo}_${params.radioKm || 50}_v2`;
+  const hashInput = `${params.provincia}_${params.localidad}_${params.hectareas}_${params.tipo_campo}_${params.radioKm || 50}_v3`;
   return btoa(hashInput).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 }
 
@@ -136,7 +211,7 @@ async function getFromCache(queryHash: string): Promise<SearchResponse | null> {
 async function saveToCache(queryHash: string, results: SearchResponse): Promise<void> {
   try {
     const expiryTime = new Date();
-    expiryTime.setHours(expiryTime.getHours() + 2); // 2 hour cache
+    expiryTime.setHours(expiryTime.getHours() + 2);
 
     const { error } = await supabase
       .from('comparables_cache')
@@ -164,7 +239,6 @@ function parseArea(text: string): number | null {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Look for hectares patterns
   const haPatterns = [
     /(\d+(?:\.\d+)?)\s*(?:ha|has|hectareas?|hectáreas?)/,
     /(\d+(?:\.\d+)?)\s*(?:hectareas?|hectáreas?)/,
@@ -177,7 +251,6 @@ function parseArea(text: string): number | null {
     }
   }
 
-  // Look for m² patterns and convert to hectares
   const m2Patterns = [
     /(\d+(?:\.\d+)?)\s*(?:m2|m²|metros?\s*cuadrados?)/,
   ];
@@ -193,12 +266,11 @@ function parseArea(text: string): number | null {
   return null;
 }
 
-// Extraer área de atributos estructurados de MercadoLibre
 function parseAreaFromAttributes(item: any): number | null {
   const totalArea = item.attributes?.find((a: any) => a.id === 'TOTAL_AREA');
   if (totalArea?.value_name) {
     const m2 = parseFloat(totalArea.value_name.replace(/[^0-9.]/g, ''));
-    if (m2 > 0) return m2 / 10000; // Convertir a hectáreas
+    if (m2 > 0) return m2 / 10000;
   }
   return parseArea(item.title);
 }
@@ -208,10 +280,12 @@ function parsePrice(item: any): number | null {
   return item.price;
 }
 
-// Obtener descripción completa de un item
-async function getItemDescription(itemId: string): Promise<string> {
+async function getItemDescription(itemId: string, token: string | null): Promise<string> {
   try {
-    const response = await fetch(`https://api.mercadolibre.com/items/${itemId}/description`);
+    const response = await fetchMercadoLibre(
+      `https://api.mercadolibre.com/items/${itemId}/description`,
+      token
+    );
     if (response.ok) {
       const data = await response.json();
       return data.plain_text || '';
@@ -222,7 +296,6 @@ async function getItemDescription(itemId: string): Promise<string> {
   return '';
 }
 
-// Extracción de datos rurales con OpenAI
 async function extractRuralData(title: string, description: string): Promise<RuralData | null> {
   if (!openAIApiKey) {
     console.log('OpenAI API key not configured, using fallback extraction');
@@ -296,11 +369,9 @@ Responde siempre con todos los campos. Si no puedes determinar algo, usa valores
   return extractRuralDataFallback(title, description);
 }
 
-// Fallback con regex si OpenAI falla
 function extractRuralDataFallback(title: string, description: string): RuralData {
   const text = `${title} ${description}`.toLowerCase();
   
-  // Detectar tipo de campo
   let tipo_campo = 'desconocido';
   if (/agr[ií]cola|agricultura|siembra|cultivo/.test(text)) tipo_campo = 'agricola';
   else if (/ganader[iao]|hacienda|vacun/.test(text)) tipo_campo = 'ganadero';
@@ -308,7 +379,6 @@ function extractRuralDataFallback(title: string, description: string): RuralData
   else if (/forestal|bosque|monte/.test(text)) tipo_campo = 'forestal';
   else if (/tambo|lecher[iao]/.test(text)) tipo_campo = 'tambo';
   
-  // Detectar mejoras
   const mejoras = {
     casa: /casa|vivienda|casero/.test(text),
     galpon: /galp[oó]n|dep[oó]sito|tinglado/.test(text),
@@ -320,7 +390,6 @@ function extractRuralDataFallback(title: string, description: string): RuralData
     manga: /manga|embarcadero/.test(text),
   };
 
-  // Detectar cultivos
   const cultivos_actuales: string[] = [];
   if (/soja/.test(text)) cultivos_actuales.push('soja');
   if (/ma[ií]z/.test(text)) cultivos_actuales.push('maíz');
@@ -328,12 +397,10 @@ function extractRuralDataFallback(title: string, description: string): RuralData
   if (/girasol/.test(text)) cultivos_actuales.push('girasol');
   if (/sorgo/.test(text)) cultivos_actuales.push('sorgo');
 
-  // Detectar pasturas
   const pasturas: string[] = [];
   if (/pastura\s*natural|campo\s*natural/.test(text)) pasturas.push('naturales');
   if (/pastura\s*implantada|pradera/.test(text)) pasturas.push('implantadas');
 
-  // Detectar infraestructura
   const infraestructura: string[] = [];
   if (/luz|electricidad|energ[ií]a/.test(text)) infraestructura.push('electricidad');
   if (/gas/.test(text)) infraestructura.push('gas');
@@ -346,29 +413,26 @@ function extractRuralDataFallback(title: string, description: string): RuralData
     cultivos_actuales,
     pasturas,
     infraestructura,
-    confidence: 0.4, // Confianza baja para fallback
+    confidence: 0.4,
   };
 }
 
 function calculateScore(comparable: Comparable, searchParams: SearchParams): number {
   let score = 0;
   
-  // Area similarity (20%)
   const areaDiff = Math.abs(comparable.area_ha - searchParams.hectareas) / searchParams.hectareas;
   const areaScore = Math.max(0, 1 - areaDiff);
   score += areaScore * 0.20;
   
-  // Location similarity (30%)
   const locationLower = comparable.location.toLowerCase();
   const localidadLower = searchParams.localidad.toLowerCase();
   const provinciaLower = searchParams.provincia.toLowerCase();
   
-  let locationScore = 0.3; // base
+  let locationScore = 0.3;
   if (locationLower.includes(localidadLower)) locationScore = 1;
   else if (locationLower.includes(provinciaLower)) locationScore = 0.6;
   score += locationScore * 0.30;
   
-  // Tipo de campo similarity (20%) - usando datos IA
   let tipoScore = 0.5;
   if (comparable.rural_data) {
     const tipoBuscado = searchParams.tipo_campo.toLowerCase();
@@ -380,7 +444,6 @@ function calculateScore(comparable: Comparable, searchParams: SearchParams): num
   }
   score += tipoScore * 0.20;
   
-  // Mejoras similarity (15%)
   let mejorasScore = 0.5;
   if (comparable.rural_data && searchParams.mejoras && searchParams.mejoras.length > 0) {
     const mejorasEncontradas = Object.entries(comparable.rural_data.mejoras)
@@ -394,52 +457,27 @@ function calculateScore(comparable: Comparable, searchParams: SearchParams): num
   }
   score += mejorasScore * 0.15;
   
-  // AI confidence score (15%)
   const confidenceScore = comparable.rural_data?.confidence || 0.3;
   score += confidenceScore * 0.15;
   
   return Math.min(score, 1);
 }
 
-async function geocodeLocation(location: string): Promise<{lat: number, lng: number} | null> {
-  try {
-    const query = encodeURIComponent(location + ', Argentina');
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-      headers: { 'User-Agent': 'Tasagro-Comparables/1.0' }
-    });
-    const data = await response.json();
-    
-    if (data && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon)
-      };
-    }
-  } catch (error) {
-    console.error('Geocoding error:', error);
-  }
-  return null;
-}
-
 function buildSearchUrl(params: SearchParams): string {
   const baseUrl = 'https://api.mercadolibre.com/sites/MLA/search';
   
-  // Usar categoría correcta MLA1496 (Campos)
   let url = `${baseUrl}?category=MLA1496`;
   
-  // Query de texto
   const queryParts = ['campo'];
   if (params.tipo_campo) queryParts.push(params.tipo_campo);
   if (params.localidad) queryParts.push(params.localidad);
   url += `&q=${encodeURIComponent(queryParts.join(' '))}`;
   
-  // Filtro de provincia
   const provinceCode = PROVINCE_CODES[params.provincia.toLowerCase()];
   if (provinceCode) {
     url += `&state=${provinceCode}`;
   }
   
-  // Filtro de área (±40% del objetivo en m²)
   const minM2 = Math.floor(params.hectareas * 0.6 * 10000);
   const maxM2 = Math.ceil(params.hectareas * 1.4 * 10000);
   url += `&TOTAL_AREA=${minM2}-${maxM2}`;
@@ -449,7 +487,7 @@ function buildSearchUrl(params: SearchParams): string {
   return url;
 }
 
-async function searchMercadoLibreWithRetry(url: string): Promise<any> {
+async function searchMercadoLibreWithRetry(url: string, token: string | null): Promise<any> {
   const maxRetries = 3;
   let lastError;
 
@@ -457,11 +495,11 @@ async function searchMercadoLibreWithRetry(url: string): Promise<any> {
     try {
       console.log(`Attempt ${attempt} - Searching MercadoLibre: ${url}`);
       
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Tasagro-Comparables/1.0' }
-      });
+      const response = await fetchMercadoLibre(url, token);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP ${response.status}: ${errorText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -487,18 +525,24 @@ async function searchMercadoLibreWithRetry(url: string): Promise<any> {
 async function searchComparables(params: SearchParams): Promise<SearchResponse> {
   const startTime = Date.now();
   
-  // Construir URL con filtros optimizados
+  // Get OAuth token
+  const token = await getMercadoLibreToken();
+  if (token) {
+    console.log('Using authenticated MercadoLibre API');
+  } else {
+    console.log('Using public MercadoLibre API (may be rate limited)');
+  }
+  
   const searchUrl = buildSearchUrl(params);
   
   try {
-    const mlResponse = await searchMercadoLibreWithRetry(searchUrl);
+    const mlResponse = await searchMercadoLibreWithRetry(searchUrl, token);
     
     if (!mlResponse.results || mlResponse.results.length === 0) {
       console.log('No results from primary search, trying broader search...');
       
-      // Búsqueda más amplia sin filtro de área
       const broaderUrl = `https://api.mercadolibre.com/sites/MLA/search?category=MLA1496&q=${encodeURIComponent(`campo ${params.tipo_campo} ${params.provincia}`)}&limit=50`;
-      const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl);
+      const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl, token);
       
       if (!broaderResponse.results || broaderResponse.results.length === 0) {
         return {
@@ -518,9 +562,7 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
     }
 
     const comparables: Comparable[] = [];
-    
-    // Procesar items en batches para obtener descripciones
-    const itemsToProcess = mlResponse.results.slice(0, 25); // Limitar a 25 para performance
+    const itemsToProcess = mlResponse.results.slice(0, 25);
     
     console.log(`Processing ${itemsToProcess.length} items with AI extraction...`);
     
@@ -534,7 +576,6 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
 
       const price_per_ha = price / area_ha;
       
-      // Location extraction
       const location = item.location ? 
         `${item.location.city?.name || ''}, ${item.location.state?.name || ''}`.trim().replace(/^,\s*/, '') : 
         params.localidad;
@@ -545,8 +586,7 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
         lng = item.location.longitude;
       }
 
-      // Obtener descripción y extraer datos rurales con IA
-      const description = await getItemDescription(item.id);
+      const description = await getItemDescription(item.id, token);
       const rural_data = await extractRuralData(item.title, description);
 
       const comparable: Comparable = {
@@ -570,10 +610,7 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
       comparables.push(comparable);
     }
 
-    // Sort by score descending
     comparables.sort((a, b) => b.score - a.score);
-
-    // Take top 15 results
     const topComparables = comparables.slice(0, 15);
 
     if (topComparables.length === 0) {
@@ -590,7 +627,6 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
       };
     }
 
-    // Calculate statistics
     const prices = topComparables.map(c => c.price);
     const pricesPerHa = topComparables.map(c => c.price_per_ha);
     
@@ -605,7 +641,6 @@ async function searchComparables(params: SearchParams): Promise<SearchResponse> 
     const estimated_price_per_ha = pricesPerHa.reduce((sum, price) => sum + price, 0) / pricesPerHa.length;
     const estimated_price_total = estimated_price_per_ha * params.hectareas;
     
-    // Calculate confidence score
     const avgScore = topComparables.reduce((sum, c) => sum + c.score, 0) / topComparables.length;
     const avgAiConfidence = topComparables.reduce((sum, c) => sum + (c.rural_data?.confidence || 0.3), 0) / topComparables.length;
     const quantityFactor = Math.min(topComparables.length / 10, 1);
@@ -642,7 +677,6 @@ serve(async (req) => {
   try {
     const { provincia, localidad, hectareas, tipo_campo, radioKm = 50, page = 1, mejoras }: SearchParams = await req.json();
 
-    // Validate required parameters
     if (!provincia || !localidad || !hectareas || !tipo_campo) {
       return new Response(JSON.stringify({ 
         error: 'Missing required parameters: provincia, localidad, hectareas, tipo_campo' 
@@ -664,7 +698,6 @@ serve(async (req) => {
     const searchParams: SearchParams = { provincia, localidad, hectareas, tipo_campo, radioKm, page, mejoras };
     const queryHash = generateQueryHash(searchParams);
 
-    // Try to get from cache first
     let result = await getFromCache(queryHash);
     
     if (!result) {
