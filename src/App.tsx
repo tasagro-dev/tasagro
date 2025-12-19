@@ -12,6 +12,7 @@ import MisTasaciones from "./pages/MisTasaciones";
 import PublicarCampo from "./pages/PublicarCampo";
 import MisPublicaciones from "./pages/MisPublicaciones";
 import NotFound from "./pages/NotFound";
+import PampaChat from "./components/PampaChat";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <PampaChat />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
