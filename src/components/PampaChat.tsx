@@ -184,15 +184,15 @@ const PampaChat: React.FC = () => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 overflow-hidden bg-white border-2 border-primary/20"
+        className="fixed bottom-6 right-6 z-50 w-20 h-20 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 overflow-hidden"
         aria-label={isOpen ? 'Cerrar chat con Pampa' : 'Abrir chat con Pampa'}
       >
         {isOpen ? (
           <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground">
-            <X className="w-6 h-6" />
+            <X className="w-7 h-7" />
           </div>
         ) : (
-          <img src={pampaAvatar} alt="Pampa" className="w-full h-full object-cover" />
+          <img src={pampaAvatar} alt="Pampa" className="w-full h-full object-contain" />
         )}
       </button>
 
