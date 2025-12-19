@@ -192,7 +192,7 @@ const PampaChat: React.FC = () => {
             <X className="w-6 h-6" />
           </div>
         ) : (
-          <img src={pampaAvatar} alt="Pampa" className="w-24 h-24 drop-shadow-lg" />
+          <img src={pampaAvatar} alt="Pampa" className="w-auto h-28 drop-shadow-lg" />
         )}
       </button>
 
