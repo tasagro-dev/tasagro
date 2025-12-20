@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TasarCampo from "./pages/TasarCampo";
+import SeleccionTasacion from "./pages/SeleccionTasacion";
 import NuevaTasacion from "./pages/NuevaTasacion";
 import MisTasaciones from "./pages/MisTasaciones";
 import PublicarCampo from "./pages/PublicarCampo";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/" element={<TasarCampo />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/seleccion-tasacion" element={<SeleccionTasacion />} />
           <Route path="/dashboard/nueva-tasacion" element={<NuevaTasacion />} />
           <Route path="/dashboard/mis-tasaciones" element={<MisTasaciones />} />
           <Route path="/dashboard/publicar-campo" element={<PublicarCampo />} />
