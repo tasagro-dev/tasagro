@@ -434,7 +434,7 @@ export default function PublicarCampo() {
       return [] as string[];
     }
 
-    const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/upload-image';
+    const endpoint = 'https://tdrquyxxtdcjmsdbjlnl.supabase.co/functions/v1/upload-image';
 
     for (let i = 0; i < validImages.length; i++) {
       const image = validImages[i];
@@ -570,7 +570,7 @@ export default function PublicarCampo() {
         impuestos_al_dia: formData.impuestos_al_dia
       };
 
-      const endpoint = 'https://minypmsdvdhktkekbeaj.supabase.co/functions/v1/propiedades';
+      const endpoint = 'https://tdrquyxxtdcjmsdbjlnl.supabase.co/functions/v1/propiedades';
       const res = await fetch(endpoint, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
