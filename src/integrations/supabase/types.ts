@@ -10,50 +10,26 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      comparables_cache: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          id: string
-          query_hash: string
-          results: Json
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          query_hash: string
-          results: Json
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          query_hash?: string
-          results?: Json
-        }
-        Relationships: []
-      }
       conectividad: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -62,19 +38,19 @@ export type Database = {
       cultivos: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -83,19 +59,19 @@ export type Database = {
       infraestructura_hidrica: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -104,19 +80,19 @@ export type Database = {
       instalaciones_agricultura: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -125,19 +101,19 @@ export type Database = {
       instalaciones_ganaderia: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -147,44 +123,41 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
-          full_name: string | null
           id: string
-          tipo_usuario: string | null
+          nombre: string | null
+          tipo_usuario: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           email?: string | null
-          full_name?: string | null
           id: string
-          tipo_usuario?: string | null
+          nombre?: string | null
+          tipo_usuario?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string | null
-          full_name?: string | null
           id?: string
-          tipo_usuario?: string | null
+          nombre?: string | null
+          tipo_usuario?: string
           updated_at?: string
         }
         Relationships: []
       }
       propiedad_alambrados: {
         Row: {
-          created_at: string | null
           id: string
           propiedad_id: string
           tipo_alambrado_id: string
         }
         Insert: {
-          created_at?: string | null
           id?: string
           propiedad_id: string
           tipo_alambrado_id: string
         }
         Update: {
-          created_at?: string | null
           id?: string
           propiedad_id?: string
           tipo_alambrado_id?: string
@@ -209,19 +182,16 @@ export type Database = {
       propiedad_conectividad: {
         Row: {
           conectividad_id: string
-          created_at: string | null
           id: string
           propiedad_id: string
         }
         Insert: {
           conectividad_id: string
-          created_at?: string | null
           id?: string
           propiedad_id: string
         }
         Update: {
           conectividad_id?: string
-          created_at?: string | null
           id?: string
           propiedad_id?: string
         }
@@ -244,19 +214,16 @@ export type Database = {
       }
       propiedad_cultivos: {
         Row: {
-          created_at: string | null
           cultivo_id: string
           id: string
           propiedad_id: string
         }
         Insert: {
-          created_at?: string | null
           cultivo_id: string
           id?: string
           propiedad_id: string
         }
         Update: {
-          created_at?: string | null
           cultivo_id?: string
           id?: string
           propiedad_id?: string
@@ -281,30 +248,27 @@ export type Database = {
       propiedad_imagenes: {
         Row: {
           created_at: string
-          es_destacada: boolean
+          es_destacada: boolean | null
           id: string
           imagen_url: string
           orden: number | null
           propiedad_id: string
-          updated_at: string
         }
         Insert: {
           created_at?: string
-          es_destacada?: boolean
+          es_destacada?: boolean | null
           id?: string
           imagen_url: string
           orden?: number | null
           propiedad_id: string
-          updated_at?: string
         }
         Update: {
           created_at?: string
-          es_destacada?: boolean
+          es_destacada?: boolean | null
           id?: string
           imagen_url?: string
           orden?: number | null
           propiedad_id?: string
-          updated_at?: string
         }
         Relationships: [
           {
@@ -318,19 +282,16 @@ export type Database = {
       }
       propiedad_infraestructura_hidrica: {
         Row: {
-          created_at: string | null
           id: string
           infraestructura_id: string
           propiedad_id: string
         }
         Insert: {
-          created_at?: string | null
           id?: string
           infraestructura_id: string
           propiedad_id: string
         }
         Update: {
-          created_at?: string | null
           id?: string
           infraestructura_id?: string
           propiedad_id?: string
@@ -354,19 +315,16 @@ export type Database = {
       }
       propiedad_instalaciones_agricultura: {
         Row: {
-          created_at: string | null
           id: string
           instalacion_id: string
           propiedad_id: string
         }
         Insert: {
-          created_at?: string | null
           id?: string
           instalacion_id: string
           propiedad_id: string
         }
         Update: {
-          created_at?: string | null
           id?: string
           instalacion_id?: string
           propiedad_id?: string
@@ -390,19 +348,16 @@ export type Database = {
       }
       propiedad_instalaciones_ganaderia: {
         Row: {
-          created_at: string | null
           id: string
           instalacion_id: string
           propiedad_id: string
         }
         Insert: {
-          created_at?: string | null
           id?: string
           instalacion_id: string
           propiedad_id: string
         }
         Update: {
-          created_at?: string | null
           id?: string
           instalacion_id?: string
           propiedad_id?: string
@@ -426,19 +381,16 @@ export type Database = {
       }
       propiedad_servidumbres: {
         Row: {
-          created_at: string | null
           id: string
           propiedad_id: string
           servidumbre_id: string
         }
         Insert: {
-          created_at?: string | null
           id?: string
           propiedad_id: string
           servidumbre_id: string
         }
         Update: {
-          created_at?: string | null
           id?: string
           propiedad_id?: string
           servidumbre_id?: string
@@ -494,6 +446,7 @@ export type Database = {
           salinidad_suelo: number | null
           servicios: string[] | null
           sistema_riego: string | null
+          tasacion_id: string | null
           telefono_codigo_pais: string | null
           telefono_numero: string | null
           tipo_campo: string
@@ -538,6 +491,7 @@ export type Database = {
           salinidad_suelo?: number | null
           servicios?: string[] | null
           sistema_riego?: string | null
+          tasacion_id?: string | null
           telefono_codigo_pais?: string | null
           telefono_numero?: string | null
           tipo_campo: string
@@ -582,6 +536,7 @@ export type Database = {
           salinidad_suelo?: number | null
           servicios?: string[] | null
           sistema_riego?: string | null
+          tasacion_id?: string | null
           telefono_codigo_pais?: string | null
           telefono_numero?: string | null
           tipo_campo?: string
@@ -595,6 +550,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "propiedades_tasacion_id_fkey"
+            columns: ["tasacion_id"]
+            isOneToOne: false
+            referencedRelation: "tasaciones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "propiedades_ubicacion_id_fkey"
             columns: ["ubicacion_id"]
             isOneToOne: false
@@ -606,19 +568,19 @@ export type Database = {
       servidumbres: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }
@@ -626,57 +588,57 @@ export type Database = {
       }
       tasaciones: {
         Row: {
-          accesibilidad: string
+          accesibilidad: string | null
           coordenadas: string | null
           created_at: string
           hectareas: number
           id: string
           imagenes: string[] | null
-          localidad: string
+          localidad: string | null
           mejoras: string[] | null
-          nombre_propiedad: string | null
-          partido: string
-          provincia: string
+          nombre_propiedad: string
+          partido: string | null
+          provincia: string | null
           servicios: string[] | null
-          tipo_campo: string
+          tipo_campo: string | null
           tipo_suelo: string | null
           updated_at: string
           user_id: string
           valor_estimado: number | null
         }
         Insert: {
-          accesibilidad: string
+          accesibilidad?: string | null
           coordenadas?: string | null
           created_at?: string
           hectareas: number
           id?: string
           imagenes?: string[] | null
-          localidad: string
+          localidad?: string | null
           mejoras?: string[] | null
-          nombre_propiedad?: string | null
-          partido: string
-          provincia: string
+          nombre_propiedad: string
+          partido?: string | null
+          provincia?: string | null
           servicios?: string[] | null
-          tipo_campo: string
+          tipo_campo?: string | null
           tipo_suelo?: string | null
           updated_at?: string
           user_id: string
           valor_estimado?: number | null
         }
         Update: {
-          accesibilidad?: string
+          accesibilidad?: string | null
           coordenadas?: string | null
           created_at?: string
           hectareas?: number
           id?: string
           imagenes?: string[] | null
-          localidad?: string
+          localidad?: string | null
           mejoras?: string[] | null
-          nombre_propiedad?: string | null
-          partido?: string
-          provincia?: string
+          nombre_propiedad?: string
+          partido?: string | null
+          provincia?: string | null
           servicios?: string[] | null
-          tipo_campo?: string
+          tipo_campo?: string | null
           tipo_suelo?: string | null
           updated_at?: string
           user_id?: string
@@ -687,19 +649,19 @@ export type Database = {
       tipos_alambrado: {
         Row: {
           activo: boolean | null
-          created_at: string | null
+          created_at: string
           id: string
           nombre: string
         }
         Insert: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre: string
         }
         Update: {
           activo?: boolean | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           nombre?: string
         }

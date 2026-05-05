@@ -31,7 +31,7 @@ export const PropertyCard = ({ property, onViewMore }: PropertyCardProps) => {
   const getImageUrl = (imagePath?: string) => {
     if (!imagePath) return '/placeholder.svg';
     if (imagePath.startsWith('http')) return imagePath;
-    return `https://minypmsdvdhktkekbeaj.supabase.co/storage/v1/object/public/property-images/${imagePath}`;
+    return `https://tdrquyxxtdcjmsdbjlnl.supabase.co/storage/v1/object/public/property-images/${imagePath}`;
   };
 
   const getMainImage = () => {

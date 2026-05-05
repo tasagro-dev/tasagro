@@ -1,4 +1,4 @@
-project_id = "minypmsdvdhktkekbeaj"
+project_id = "tdrquyxxtdcjmsdbjlnl"
 
 [functions.propiedades]
 verify_jwt = false
@@ -10,4 +10,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.mercadolibre-comparables]
+verify_jwt = false
+
+[functions.pampa-chat]
 verify_jwt = false
