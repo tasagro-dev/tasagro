@@ -1,1 +1,16 @@
 project_id = "tdrquyxxtdcjmsdbjlnl"
+
+[functions.propiedades]
+verify_jwt = false
+
+[functions.ubicaciones]
+verify_jwt = false
+
+[functions.upload-image]
+verify_jwt = false
+
+[functions.mercadolibre-comparables]
+verify_jwt = false
+
+[functions.pampa-chat]
+verify_jwt = false
