@@ -76,6 +76,8 @@ const Auth = () => {
           errorMessage = "Este email ya está registrado. Intenta iniciar sesión.";
         } else if (result.error.message.includes('Email not confirmed')) {
           errorMessage = "Por favor confirma tu email antes de iniciar sesión.";
+        } else if (result.error.message.includes('weak_password') || result.error.message.includes('weak') || result.error.message.includes('pwned')) {
+          errorMessage = "La contraseña es demasiado débil o común. Elegí una más segura con al menos 8 caracteres, combinando letras, números y símbolos.";
         }
 
         toast({
