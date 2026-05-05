@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["google.maps"],
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": [
