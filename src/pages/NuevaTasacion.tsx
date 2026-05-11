@@ -156,6 +156,13 @@ const NuevaTasacion = () => {
 
       setComparablesData(data);
       setShowComparablesModal(true);
+
+      if (data?.notice) {
+        toast({
+          title: "Búsqueda limitada",
+          description: data.notice,
+        });
+      }
     } catch (error) {
       console.error('Error searching comparables:', error);
       toast({

@@ -543,43 +543,67 @@ async function searchMercadoLibreWithRetry(url: string): Promise<any> {
   throw lastError;
 }
 
-async function searchComparables(params: SearchParams): Promise<SearchResponse> {
+const EMPTY_RESPONSE: SearchResponse = {
+  comparables: [],
+  total_found: 0,
+  estimated_price_per_ha: 0,
+  estimated_price_total: 0,
+  min_price: 0,
+  max_price: 0,
+  median_price: 0,
+  confidence_score: 0,
+  from_cache: false,
+};
+
+async function searchComparables(params: SearchParams): Promise<SearchResponse & { notice?: string }> {
   const startTime = Date.now();
-  
-  // Get OAuth token for item descriptions (optional, descriptions are also public)
+
+  // Get OAuth token for item descriptions (optional)
   const token = await getMercadoLibreToken();
   if (token) {
     console.log('OAuth token available for item details');
   }
-  
+
   const searchUrl = buildSearchUrl(params);
-  
+
+  let mlResponse: any;
   try {
-    // Search uses PUBLIC API - no auth
-    const mlResponse = await searchMercadoLibreWithRetry(searchUrl);
-    
-    if (!mlResponse.results || mlResponse.results.length === 0) {
-      console.log('No results from primary search, trying broader search...');
-      
-      const broaderUrl = `https://api.mercadolibre.com/sites/MLA/search?category=MLA1496&q=${encodeURIComponent(`campo ${params.tipo_campo} ${params.provincia}`)}&limit=50`;
+    mlResponse = await searchMercadoLibreWithRetry(searchUrl);
+  } catch (error) {
+    const msg = (error as Error).message || '';
+    // MercadoLibre closed public search to client_credentials apps; return empty result with notice
+    if (msg.includes('403') || msg.includes('401')) {
+      console.warn('MercadoLibre search endpoint is restricted (403/401). Returning empty result.');
+      return {
+        ...EMPTY_RESPONSE,
+        notice: 'La API pública de MercadoLibre no está permitiendo búsquedas en este momento. Intenta más tarde o usa la tasación estimada.',
+      };
+    }
+    throw error;
+  }
+
+  if (!mlResponse?.results || mlResponse.results.length === 0) {
+    console.log('No results from primary search, trying broader search...');
+    const broaderUrl = `https://api.mercadolibre.com/sites/MLA/search?category=MLA1496&q=${encodeURIComponent(`campo ${params.tipo_campo} ${params.provincia}`)}&limit=50`;
+    try {
       const broaderResponse = await searchMercadoLibreWithRetry(broaderUrl);
-      
-      if (!broaderResponse.results || broaderResponse.results.length === 0) {
+      if (!broaderResponse?.results || broaderResponse.results.length === 0) {
+        return { ...EMPTY_RESPONSE };
+      }
+      mlResponse.results = broaderResponse.results;
+    } catch (error) {
+      const msg = (error as Error).message || '';
+      if (msg.includes('403') || msg.includes('401')) {
         return {
-          comparables: [],
-          total_found: 0,
-          estimated_price_per_ha: 0,
-          estimated_price_total: 0,
-          min_price: 0,
-          max_price: 0,
-          median_price: 0,
-          confidence_score: 0,
-          from_cache: false
+          ...EMPTY_RESPONSE,
+          notice: 'La API pública de MercadoLibre no está permitiendo búsquedas en este momento.',
         };
       }
-      
-      mlResponse.results = broaderResponse.results;
+      throw error;
     }
+  }
+
+  try {
 
     const comparables: Comparable[] = [];
     const itemsToProcess = mlResponse.results.slice(0, 25);
