@@ -16,9 +16,55 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resendConfirmation, requestPasswordReset } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      toast({
+        title: 'Ingresá tu email',
+        description: 'Necesitamos tu email para reenviar la confirmación.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resendConfirmation(email);
+    setLoading(false);
+
+    toast({
+      title: error ? 'No se pudo reenviar' : 'Correo reenviado',
+      description: error
+        ? 'Revisá el email ingresado e intentá nuevamente.'
+        : 'Si la cuenta existe, te enviamos un nuevo correo de confirmación.',
+      variant: error ? 'destructive' : 'default',
+    });
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        title: 'Ingresá tu email',
+        description: 'Necesitamos tu email para enviarte el enlace de recuperación.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await requestPasswordReset(email);
+    setLoading(false);
+
+    toast({
+      title: error ? 'No se pudo enviar' : 'Revisá tu correo',
+      description: error
+        ? 'Ocurrió un problema al generar el enlace de recuperación.'
+        : 'Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.',
+      variant: error ? 'destructive' : 'default',
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,11 +117,11 @@ const Auth = () => {
         let errorMessage = "Ha ocurrido un error. Intenta nuevamente.";
         
         if (result.error.message.includes('Invalid login credentials')) {
-          errorMessage = "Email o contraseña incorrectos.";
+          errorMessage = "No pudimos iniciar sesión. Verificá tu contraseña o usá 'Olvidé mi contraseña'.";
         } else if (result.error.message.includes('User already registered')) {
           errorMessage = "Este email ya está registrado. Intenta iniciar sesión.";
         } else if (result.error.message.includes('Email not confirmed')) {
-          errorMessage = "Por favor confirma tu email antes de iniciar sesión.";
+          errorMessage = "Tu cuenta todavía no fue confirmada. Podés reenviar el correo de verificación abajo.";
         } else if (result.error.message.includes('weak_password') || result.error.message.includes('weak') || result.error.message.includes('pwned')) {
           errorMessage = "La contraseña es demasiado débil o común. Elegí una más segura con al menos 8 caracteres, combinando letras, números y símbolos.";
         }
@@ -160,6 +206,18 @@ const Auth = () => {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSignUp ? 'Crear cuenta' : 'Iniciar sesión'}
             </Button>
+
+            {!isSignUp && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={loading}
+                onClick={handlePasswordReset}
+              >
+                Olvidé mi contraseña
+              </Button>
+            )}
           </form>
 
           <div className="mt-6 text-center">
@@ -178,6 +236,17 @@ const Auth = () => {
                 : '¿No tenés cuenta? Registrate'
               }
             </button>
+
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                className="mt-3 text-sm text-primary hover:underline disabled:opacity-50"
+                disabled={loading}
+              >
+                Reenviar correo de confirmación
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

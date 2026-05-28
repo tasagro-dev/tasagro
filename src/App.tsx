@@ -12,6 +12,7 @@ import NuevaTasacion from "./pages/NuevaTasacion";
 import MisTasaciones from "./pages/MisTasaciones";
 import PublicarCampo from "./pages/PublicarCampo";
 import MisPublicaciones from "./pages/MisPublicaciones";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PampaChat from "./components/PampaChat";
 
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<TasarCampo />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/seleccion-tasacion" element={<SeleccionTasacion />} />
           <Route path="/dashboard/nueva-tasacion" element={<NuevaTasacion />} />

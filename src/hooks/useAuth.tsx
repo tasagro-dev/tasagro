@@ -49,6 +49,35 @@ export const useAuth = () => {
     return { error };
   };
 
+  const resendConfirmation = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
+    });
+
+    return { error };
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+
+    return { error };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
@@ -60,6 +89,9 @@ export const useAuth = () => {
     loading,
     signIn,
     signUp,
+    resendConfirmation,
+    requestPasswordReset,
+    updatePassword,
     signOut,
   };
 };
